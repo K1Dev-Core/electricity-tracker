@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const ws = require('ws')
 const { createClient } = require('@supabase/supabase-js')
 const path = require('path')
 
@@ -15,7 +16,12 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
 // Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_ANON_KEY || ''
+  process.env.SUPABASE_ANON_KEY || '',
+  {
+    realtime: {
+      transport: ws
+    }
+  }
 )
 
 app.use(cors())
