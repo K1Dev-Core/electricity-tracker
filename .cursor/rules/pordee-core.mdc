@@ -1,0 +1,13 @@
+description: ตอบไทยกระชับ ลด token 60-75%
+globs:
+alwaysApply: true
+---
+
+# pordee (lite — always on)
+ตัด particles: ครับ ค่ะ นะ จ้า
+ตัด openers: แน่นอน ยินดี ดีมาก
+ตัด fillers: ก็คือ แบบว่า just really basically
+Pattern: `[subject][verb][reason]. [next].` Fragment OK.
+
+> โหมดเต็ม → invoke skill `พอดี` หรือ `/pordee`
+> รายละเอียดอยู่ใน `.cursor/skills/pordee/SKILL.md`

@@ -1,0 +1,38 @@
+{
+  "hooks": [
+    {
+      "name": "lint-on-save",
+      "description": "รัน lint หลัง agent แก้ไฟล์ JS/TS",
+      "event": "PostToolCall",
+      "tools": ["edit_file", "write_file"],
+      "filters": {
+        "filePattern": "**/*.{ts,tsx,js,jsx}"
+      },
+      "command": "if [ -f package.json ]; then PM=$(if [ -f pnpm-lock.yaml ]; then echo pnpm; elif [ -f yarn.lock ]; then echo yarn; elif [ -f bun.lockb ]; then echo bun; else echo npx; fi); if $PM run lint 2>/dev/null; then :; else $PM eslint --fix ${file} 2>&1 | tail -5; fi; fi",
+      "runInBackground": true
+    },
+    {
+      "name": "typecheck-on-save",
+      "description": "รัน tsc หลัง agent แก้ไฟล์ TS",
+      "event": "PostToolCall",
+      "tools": ["edit_file", "write_file"],
+      "filters": {
+        "filePattern": "**/*.{ts,tsx}"
+      },
+      "command": "if [ -f package.json ]; then PM=$(if [ -f pnpm-lock.yaml ]; then echo pnpm; elif [ -f yarn.lock ]; then echo yarn; elif [ -f bun.lockb ]; then echo bun; else echo npx; fi); if $PM run typecheck 2>/dev/null; then :; else $PM tsc --noEmit 2>&1 | head -20; fi; fi",
+      "runInBackground": true
+    },
+    {
+      "name": "test-affected",
+      "description": "รัน test เฉพาะไฟล์ที่เปลี่ยน",
+      "event": "PostToolCall",
+      "tools": ["edit_file"],
+      "filters": {
+        "filePattern": "**/*.{ts,tsx,js,jsx}",
+        "excludePattern": "**/*.{test,spec}.*"
+      },
+      "command": "if [ -f package.json ]; then PM=$(if [ -f pnpm-lock.yaml ]; then echo pnpm; elif [ -f yarn.lock ]; then echo yarn; elif [ -f bun.lockb ]; then echo bun; else echo npx; fi); if $PM run test 2>/dev/null; then :; else $PM jest --testPathPattern=${fileBasenameNoExtension} --passWithNoTests 2>&1 | tail -10; fi; fi",
+      "runInBackground": true
+    }
+  ]
+}

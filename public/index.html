@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ บันทึกค่าไฟ</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>⚡ บันทึกค่าไฟ</h1>
+    <p class="sub">อัตรา 8 บาท / หน่วย</p>
+  </header>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="label">ครั้งล่าสุด ใช้ไป</div>
+      <div class="value" id="lastUnit">—</div>
+      <div class="unit">หน่วย</div>
+    </div>
+    <div class="card">
+      <div class="label">ค่าไฟครั้งล่าสุด</div>
+      <div class="value" id="lastCost">—</div>
+      <div class="unit">บาท</div>
+    </div>
+    <div class="card">
+      <div class="label">เดือนนี้รวม</div>
+      <div class="value" id="monthUnit">—</div>
+      <div class="unit">หน่วย</div>
+    </div>
+    <div class="card">
+      <div class="label">ค่าไฟเดือนนี้</div>
+      <div class="value" id="monthCost">—</div>
+      <div class="unit">บาท</div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="section">
+    <h2>บันทึกเลขมิเตอร์ตอนนี้</h2>
+    <div class="now-badge" id="nowBadge"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="inputMeter">เลขมิเตอร์ (หน่วย)</label>
+        <input type="number" id="inputMeter" placeholder="เช่น 8247" step="0.01" autofocus>
+      </div>
+      <div class="form-group">
+        <label for="inputNote">หมายเหตุ (ไม่บังคับ)</label>
+        <input type="text" id="inputNote" placeholder="เช่น ก่อนเปิดแอร์">
+      </div>
+      <button id="btnSave" onclick="addRecord()">
+        <span id="btnText">บันทึก</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="section">
+    <div class="section-head">
+      <h2>กราฟการใช้ไฟ</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('day', this)">รายวัน</button>
+        <button class="tab" onclick="switchTab('month', this)">รายเดือน</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้า"></canvas>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section">
+    <h2>ประวัติการบันทึก</h2>
+    <div id="historyWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>วันที่-เวลา</th>
+            <th>มิเตอร์</th>
+            <th>ใช้ (หน่วย)</th>
+            <th>ค่าไฟ</th>
+            <th>หมายเหตุ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg">ยังไม่มีข้อมูล — เริ่มบันทึกด้านบน</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

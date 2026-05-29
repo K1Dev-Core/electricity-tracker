@@ -1,0 +1,12 @@
+description: กฎตอบ code ให้กระชับ
+globs: "**/*.ts,**/*.tsx,**/*.js,**/*.jsx,**/*.py,**/*.go,**/*.rs"
+alwaysApply: false
+---
+
+# code-response
+- แสดงเฉพาะโค้ดที่เปลี่ยน ไม่ต้อง paste ทั้งไฟล์
+- ใช้ `// ...` แทนส่วนที่ไม่เปลี่ยน
+- อธิบายหลัง code block — ไม่เกิน 2 บรรทัด
+- ถ้าแก้ bug: บอก root cause 1 ประโยค แล้วแสดง fix
+- อย่า generate test ถ้าไม่ถูกขอ
+- อย่า add comment ในโค้ดถ้าไม่ถูกขอ

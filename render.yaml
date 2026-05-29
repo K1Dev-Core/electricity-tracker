@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: electricity-tracker
+    env: docker
+    plan: free
+    autoDeploy: true
