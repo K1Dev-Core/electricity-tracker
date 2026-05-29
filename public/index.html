@@ -3,98 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ บันทึกค่าไฟ</title>
+  <title>Meter Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
 
-<div class="container">
-  <header>
-    <h1>⚡ บันทึกค่าไฟ</h1>
-    <p class="sub">อัตรา 8 บาท / หน่วย</p>
-  </header>
+<div class="layout">
 
-  <!-- Summary Cards -->
-  <div class="cards">
-    <div class="card">
-      <div class="label">ครั้งล่าสุด ใช้ไป</div>
-      <div class="value" id="lastUnit">—</div>
-      <div class="unit">หน่วย</div>
+  <!-- Sidebar / Header -->
+  <aside class="sidebar">
+    <div class="brand">
+      <i class="ti ti-bolt" aria-hidden="true"></i>
+      <span>Meter Tracker</span>
     </div>
-    <div class="card">
-      <div class="label">ค่าไฟครั้งล่าสุด</div>
-      <div class="value" id="lastCost">—</div>
-      <div class="unit">บาท</div>
-    </div>
-    <div class="card">
-      <div class="label">เดือนนี้รวม</div>
-      <div class="value" id="monthUnit">—</div>
-      <div class="unit">หน่วย</div>
-    </div>
-    <div class="card">
-      <div class="label">ค่าไฟเดือนนี้</div>
-      <div class="value" id="monthCost">—</div>
-      <div class="unit">บาท</div>
-    </div>
-  </div>
+    <p class="brand-sub">8 บาท / หน่วย</p>
 
-  <!-- Form -->
-  <div class="section">
-    <h2>บันทึกเลขมิเตอร์ตอนนี้</h2>
-    <div class="now-badge" id="nowBadge"></div>
-    <div class="form-row">
-      <div class="form-group">
-        <label for="inputMeter">เลขมิเตอร์ (หน่วย)</label>
-        <input type="number" id="inputMeter" placeholder="เช่น 8247" step="0.01" autofocus>
+    <!-- Stats -->
+    <div class="stat-group">
+      <div class="stat">
+        <div class="stat-label">ครั้งล่าสุด</div>
+        <div class="stat-value mono" id="lastUnit">—</div>
+        <div class="stat-unit">หน่วย</div>
       </div>
-      <div class="form-group">
-        <label for="inputNote">หมายเหตุ (ไม่บังคับ)</label>
-        <input type="text" id="inputNote" placeholder="เช่น ก่อนเปิดแอร์">
+      <div class="stat">
+        <div class="stat-label">ค่าไฟครั้งล่าสุด</div>
+        <div class="stat-value mono" id="lastCost">—</div>
+        <div class="stat-unit">บาท</div>
       </div>
-      <button id="btnSave" onclick="addRecord()">
-        <span id="btnText">บันทึก</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Chart -->
-  <div class="section">
-    <div class="section-head">
-      <h2>กราฟการใช้ไฟ</h2>
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('day', this)">รายวัน</button>
-        <button class="tab" onclick="switchTab('month', this)">รายเดือน</button>
+      <div class="stat divider">
+        <div class="stat-label">เดือนนี้รวม</div>
+        <div class="stat-value mono" id="monthUnit">—</div>
+        <div class="stat-unit">หน่วย</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">ค่าไฟเดือนนี้</div>
+        <div class="stat-value mono" id="monthCost">—</div>
+        <div class="stat-unit">บาท</div>
       </div>
     </div>
-    <div class="chart-wrap">
-      <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้า"></canvas>
-    </div>
-  </div>
+  </aside>
 
-  <!-- History -->
-  <div class="section">
-    <h2>ประวัติการบันทึก</h2>
-    <div id="historyWrap">
-      <table>
-        <thead>
-          <tr>
-            <th>วันที่-เวลา</th>
-            <th>มิเตอร์</th>
-            <th>ใช้ (หน่วย)</th>
-            <th>ค่าไฟ</th>
-            <th>หมายเหตุ</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-      <div class="empty" id="emptyMsg">ยังไม่มีข้อมูล — เริ่มบันทึกด้านบน</div>
-    </div>
-  </div>
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- Record Form -->
+    <section class="card form-card">
+      <div class="card-head">
+        <i class="ti ti-pencil" aria-hidden="true"></i>
+        <h2>บันทึกมิเตอร์</h2>
+        <span class="clock" id="clock"></span>
+      </div>
+      <div class="form-body">
+        <div class="field">
+          <label for="inputMeter">เลขมิเตอร์ (หน่วย)</label>
+          <input type="number" id="inputMeter" placeholder="เช่น 8247" step="0.01" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="inputNote">หมายเหตุ</label>
+          <input type="text" id="inputNote" placeholder="ไม่บังคับ" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="btnSave" onclick="addRecord()">
+          <i class="ti ti-check" aria-hidden="true"></i>
+          <span id="btnText">บันทึกตอนนี้</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Chart -->
+    <section class="card chart-card">
+      <div class="card-head">
+        <i class="ti ti-chart-bar" aria-hidden="true"></i>
+        <h2>การใช้ไฟ</h2>
+        <div class="tab-group" role="tablist">
+          <button class="tab active" role="tab" onclick="switchTab('day',this)">รายวัน</button>
+          <button class="tab" role="tab" onclick="switchTab('month',this)">รายเดือน</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-empty" id="chartEmpty">ยังไม่มีข้อมูลเพียงพอสำหรับกราฟ</div>
+        <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้า"></canvas>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="card history-card">
+      <div class="card-head">
+        <i class="ti ti-list" aria-hidden="true"></i>
+        <h2>ประวัติการบันทึก</h2>
+        <span class="count-badge" id="countBadge"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>เวลา</th>
+              <th class="num-col">มิเตอร์</th>
+              <th class="num-col">ใช้ไป</th>
+              <th class="num-col">ค่าไฟ</th>
+              <th class="note-col">หมายเหตุ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <div class="table-empty" id="emptyMsg">
+          <i class="ti ti-inbox" aria-hidden="true"></i>
+          <p>ยังไม่มีข้อมูล<br>เริ่มบันทึกเลขมิเตอร์ด้านบน</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/js/app.js"></script>
 </body>
