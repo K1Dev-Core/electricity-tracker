@@ -48,6 +48,30 @@ window.toggleInsights = function() {
   icon.classList.toggle('open')
 }
 
+const confirmState = { resolver: null }
+
+function showConfirm({ title = 'ยืนยัน', text = 'คุณแน่ใจหรือไม่?' } = {}) {
+  return new Promise(resolve => {
+    confirmState.resolver = resolve
+    document.getElementById('confirmTitle').textContent = title
+    document.getElementById('confirmText').textContent = text
+    document.getElementById('confirmModal').classList.remove('hidden')
+  })
+}
+
+function hideConfirm(result = false) {
+  document.getElementById('confirmModal').classList.add('hidden')
+  if (confirmState.resolver) {
+    confirmState.resolver(result)
+    confirmState.resolver = null
+  }
+}
+
+document.addEventListener('click', e => {
+  if (e.target?.id === 'confirmCancelBtn') hideConfirm(false)
+  if (e.target?.id === 'confirmOkBtn') hideConfirm(true)
+})
+
 function showLiffToast(msg) {
   const t = document.getElementById('liffToast')
   if (!t) return
@@ -207,7 +231,10 @@ async function addRecord() {
   if (records.length > 0) {
     const last = records[records.length - 1]
     if (meter < last.meter_value) {
-      const ok = confirm(`เลขมิเตอร์ ${meter} น้อยกว่าครั้งก่อน (${last.meter_value})\nแน่ใจว่าจะบันทึก?`)
+      const ok = await showConfirm({
+        title: 'ยืนยันการบันทึก',
+        text: `เลขมิเตอร์ ${meter} น้อยกว่าครั้งก่อน (${last.meter_value})\nแน่ใจว่าจะบันทึก?`
+      })
       if (!ok) return
     }
   }
@@ -236,7 +263,8 @@ async function addRecord() {
 }
 
 async function cancelLastRecord() {
-  if (!confirm('ยกเลิกรายการล่าสุด?')) return
+  const ok = await showConfirm({ title: 'ยกเลิกรายการ', text: 'ยกเลิกรายการล่าสุด?' })
+  if (!ok) return
   try {
     if (lineUserId) {
       await lineAction('cancel')
@@ -251,7 +279,8 @@ async function cancelLastRecord() {
 }
 
 async function deleteRecord(id) {
-  if (!confirm('ลบรายการนี้?')) return
+  const ok = await showConfirm({ title: 'ลบรายการ', text: 'ลบรายการนี้?' })
+  if (!ok) return
   try {
     const res = await fetch('/api/records/' + id, { method: 'DELETE', headers: lineUserId ? { 'x-line-user-id': lineUserId } : {} })
     if (!res.ok) throw new Error('ลบไม่ได้')
@@ -279,14 +308,24 @@ async function toggleBilling(id) {
       if (lastStart) {
         const diff = daysBetween(record.recorded_at, lastStart.recorded_at)
         if (diff < 20) {
-          if (!confirm(`วันเริ่มรอบบิลเก่าอยู่ใกล้กันมาก (${diff.toFixed(0)} วัน)\n\nต้องการตั้งรายการนี้เป็นวันเริ่มรอบบิลใหม่ใช่ไหม?`)) return
+          const ok = await showConfirm({
+            title: 'ตั้งรอบบิลใหม่?',
+            text: `วันเริ่มรอบบิลเก่าอยู่ใกล้กันมาก (${diff.toFixed(0)} วัน)\n\nต้องการตั้งรายการนี้เป็นวันเริ่มรอบบิลใหม่ใช่ไหม?`
+          })
+          if (!ok) return
         } else if (diff < 25) {
-          if (!confirm(`วันเริ่มรอบบิลเก่าอยู่ห่างกันแค่ ${diff.toFixed(0)} วัน\n\nโดยปกติรอบบิลมักจะใกล้ประมาณ 20–25 วัน\nต้องการตั้งใหม่ใช่ไหม?`)) return
+          const ok = await showConfirm({
+            title: 'ตั้งรอบบิลใหม่?',
+            text: `วันเริ่มรอบบิลเก่าอยู่ห่างกันแค่ ${diff.toFixed(0)} วัน\n\nโดยปกติรอบบิลมักจะใกล้ประมาณ 20–25 วัน\nต้องการตั้งใหม่ใช่ไหม?`
+          })
+          if (!ok) return
         } else {
-          if (!confirm('จะตั้งรายการนี้เป็นวันเริ่มรอบบิลใช่ไหม?')) return
+          const ok = await showConfirm({ title: 'ตั้งรอบบิลใหม่?', text: 'จะตั้งรายการนี้เป็นวันเริ่มรอบบิลใช่ไหม?' })
+          if (!ok) return
         }
       } else {
-        if (!confirm('จะตั้งรายการนี้เป็นวันแรกของรอบบิลใช่ไหม?')) return
+        const ok = await showConfirm({ title: 'ตั้งรอบบิลใหม่?', text: 'จะตั้งรายการนี้เป็นวันแรกของรอบบิลใช่ไหม?' })
+        if (!ok) return
       }
     }
 

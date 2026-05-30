@@ -225,7 +225,7 @@ td .btn-billing + .btn-del { margin-left: 2px; }
 .sidebar-gear:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
 .sidebar-version { font-size: 10px; color: rgba(255,255,255,0.25); }
 
-/* ─── Settings Modal ──────────────────────────────── */
+/* ─── Settings & Confirm Modal ─────────────────────── */
 .modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .modal-overlay.hidden { display: none !important; }
 .modal-card { background: #fff; border-radius: 14px; width: 90%; max-width: 360px; box-shadow: 0 8px 40px rgba(0,0,0,0.2); }
@@ -234,6 +234,10 @@ td .btn-billing + .btn-del { margin-left: 2px; }
 .modal-close { border: none; background: none; font-size: 22px; cursor: pointer; color: var(--ink-3); }
 .modal-body { padding: 1.25rem; display: grid; gap: 12px; }
 .modal-foot { padding: 0.75rem 1.25rem 1.25rem; }
+.confirm-card { max-width: 340px; }
+.confirm-foot { display:flex; gap:10px; }
+.btn-secondary { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:40px; padding:0 18px; background: var(--line-2); color: var(--ink); border:none; border-radius: var(--r-sm); cursor:pointer; }
+.confirm-foot .btn-primary, .confirm-foot .btn-secondary { flex:1; }
 .skeleton-card { padding: 1rem 1.25rem; }
 .skeleton-card.hidden { display: none; }
 .skeleton-insight { margin-bottom: 1rem; }
