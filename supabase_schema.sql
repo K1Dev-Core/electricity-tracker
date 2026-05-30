@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   id           bigserial PRIMARY KEY,
   user_id      text UNIQUE NOT NULL,
   rate         numeric(10, 2) NOT NULL DEFAULT 8.00,
+  reminder_enabled boolean NOT NULL DEFAULT false,
+  reminder_start_hour integer NOT NULL DEFAULT 19,
+  reminder_end_hour integer NOT NULL DEFAULT 24,
+  reminder_last_sent_date date,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
@@ -61,6 +65,10 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   id           bigserial PRIMARY KEY,
   user_id      text UNIQUE NOT NULL,
   rate         numeric(10, 2) NOT NULL DEFAULT 8.00,
+  reminder_enabled boolean NOT NULL DEFAULT false,
+  reminder_start_hour integer NOT NULL DEFAULT 19,
+  reminder_end_hour integer NOT NULL DEFAULT 24,
+  reminder_last_sent_date date,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
 );

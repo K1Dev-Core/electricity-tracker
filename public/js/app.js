@@ -7,6 +7,9 @@ let heatmapMode = 'day'
 let lineProfile = null
 let lineUserId = null
 let lineReady = false
+let reminderEnabled = false
+let reminderStartHour = 19
+let reminderEndHour = 24
 
 function updateClock() {
   const el = document.getElementById('clock')
@@ -409,8 +412,11 @@ async function loadPreferences() {
   } catch (_) {}
 }
 
-window.openSettings = function() {
+window.openSettings = async function() {
   document.getElementById('inputRate').value = userRate
+  document.getElementById('reminderEnabled').checked = reminderEnabled
+  document.getElementById('reminderStartHour').value = reminderStartHour
+  document.getElementById('reminderEndHour').value = reminderEndHour
   document.getElementById('settingsModal').classList.remove('hidden')
 }
 
@@ -418,24 +424,32 @@ window.closeSettings = function() {
   document.getElementById('settingsModal').classList.add('hidden')
 }
 
-window.saveSettings = function() {
+window.saveSettings = async function() {
   const rate = parseFloat(document.getElementById('inputRate').value)
+  const enabled = document.getElementById('reminderEnabled').checked
+  const start = parseInt(document.getElementById('reminderStartHour').value, 10)
+  const end = parseInt(document.getElementById('reminderEndHour').value, 10)
   if (!rate || rate <= 0) return showToast('กรุณาใส่ราคาค่าไฟต่อหน่วย')
-  fetch('/api/preferences', {
-    method: 'PUT',
-    headers: lineUserId ? { 'Content-Type': 'application/json', 'x-line-user-id': lineUserId } : { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rate })
-  }).then(res => {
-    if (res.ok) {
-      userRate = rate
-      closeSettings()
-      // re-render with new rate
-      render()
-      showToast('บันทึกแล้ว')
-    } else {
-      showToast('บันทึกไม่ได้')
-    }
-  })
+  if (Number.isNaN(start) || Number.isNaN(end) || start < 0 || end > 24 || start >= end) return showToast('ช่วงเวลาแจ้งเตือนไม่ถูกต้อง')
+  try {
+    const h = { 'Content-Type': 'application/json' }
+    if (lineUserId) h['x-line-user-id'] = lineUserId
+    const res = await fetch('/api/preferences', {
+      method: 'PUT',
+      headers: h,
+      body: JSON.stringify({ rate, reminder_enabled: enabled, reminder_start_hour: start, reminder_end_hour: end })
+    })
+    if (!res.ok) throw new Error('บันทึกไม่ได้')
+    userRate = rate
+    reminderEnabled = enabled
+    reminderStartHour = start
+    reminderEndHour = end
+    closeSettings()
+    render()
+    showToast('บันทึกแล้ว')
+  } catch (e) {
+    showToast(e.message)
+  }
 }
 
 function render() {
@@ -811,6 +825,16 @@ async function fetchRate() {
     if (!res.ok) return
     const data = await res.json()
     userRate = parseFloat(data.rate) || 8
+    reminderEnabled = !!data.reminder_enabled
+    reminderStartHour = data.reminder_start_hour ?? 19
+    reminderEndHour = data.reminder_end_hour ?? 24
+    setEl('rateDisplay', userRate.toFixed(2) + ' บาท / หน่วย')
+    const rem = document.getElementById('reminderEnabled')
+    if (rem) rem.checked = reminderEnabled
+    const sh = document.getElementById('reminderStartHour')
+    if (sh) sh.value = reminderStartHour
+    const eh = document.getElementById('reminderEndHour')
+    if (eh) eh.value = reminderEndHour
   } catch (_) {}
 }
 

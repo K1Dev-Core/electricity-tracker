@@ -55,6 +55,17 @@ function normalizeCommand(text) {
   return String(text || '').trim().toLowerCase()
 }
 
+function isInReminderWindow(pref, now = new Date()) {
+  const start = Number(pref?.reminder_start_hour ?? 19)
+  const end = Number(pref?.reminder_end_hour ?? 24)
+  const hour = now.getHours()
+  return hour >= start && hour < end
+}
+
+function randomHourBetween(start, end) {
+  return Math.floor(start + Math.random() * Math.max(1, end - start))
+}
+
 function buildUsage(records) {
   return records.map((r, i) => {
     const units = i === 0 ? 0 : Math.max(0, r.meter_value - records[i - 1].meter_value)
@@ -198,24 +209,34 @@ app.delete('/api/records/:id', async (req, res) => {
 // — Preferences API —
 const PREF_TABLE = process.env.SUPABASE_PREF_TABLE || 'user_preferences'
 
+async function ensurePrefs(userId) {
+  let { data } = await supabase.from(PREF_TABLE).select('*').eq('user_id', userId).maybeSingle()
+  if (!data) {
+    const { data: inserted } = await supabase.from(PREF_TABLE).insert({ user_id: userId, rate: 8 }).select().single()
+    data = inserted
+  }
+  return data
+}
+
 async function getUserRate(userId) {
   if (!userId) return 8
-  const { data } = await supabase.from(PREF_TABLE).select('rate').eq('user_id', userId).maybeSingle()
-  return data ? parseFloat(data.rate) : 8
+  const pref = await ensurePrefs(userId)
+  return pref ? parseFloat(pref.rate) : 8
 }
 
 app.get('/api/preferences', async (req, res) => {
   try {
     const userId = getUserId(req)
-    if (!userId) return res.json({ rate: 8 })
-    let { data } = await supabase.from(PREF_TABLE).select('rate').eq('user_id', userId).maybeSingle()
-    if (!data) {
-      const { data: inserted } = await supabase.from(PREF_TABLE).insert({ user_id: userId, rate: 8 }).select().single()
-      data = inserted
-    }
-    res.json({ rate: data ? parseFloat(data.rate) : 8 })
+    if (!userId) return res.json({ rate: 8, reminder_enabled: false, reminder_start_hour: 19, reminder_end_hour: 24 })
+    const pref = await ensurePrefs(userId)
+    res.json({
+      rate: pref ? parseFloat(pref.rate) : 8,
+      reminder_enabled: !!pref?.reminder_enabled,
+      reminder_start_hour: pref?.reminder_start_hour ?? 19,
+      reminder_end_hour: pref?.reminder_end_hour ?? 24
+    })
   } catch (error) {
-    res.json({ rate: 8 })
+    res.json({ rate: 8, reminder_enabled: false, reminder_start_hour: 19, reminder_end_hour: 24 })
   }
 })
 
@@ -224,13 +245,28 @@ app.put('/api/preferences', async (req, res) => {
     const userId = getUserId(req)
     if (!userId) return res.status(400).json({ error: 'missing user id' })
     const rate = parseFloat(req.body?.rate ?? 8)
+    const reminder_enabled = !!req.body?.reminder_enabled
+    const reminder_start_hour = Number.isFinite(Number(req.body?.reminder_start_hour)) ? parseInt(req.body.reminder_start_hour, 10) : 19
+    const reminder_end_hour = Number.isFinite(Number(req.body?.reminder_end_hour)) ? parseInt(req.body.reminder_end_hour, 10) : 24
     if (rate <= 0) return res.status(400).json({ error: 'rate must be > 0' })
     const { data, error } = await supabase.from(PREF_TABLE).upsert(
-      { user_id: userId, rate, updated_at: new Date().toISOString() },
+      {
+        user_id: userId,
+        rate,
+        reminder_enabled,
+        reminder_start_hour,
+        reminder_end_hour,
+        updated_at: new Date().toISOString()
+      },
       { onConflict: 'user_id' }
     ).select().single()
     if (error) throw error
-    res.json({ rate: parseFloat(data.rate) })
+    res.json({
+      rate: parseFloat(data.rate),
+      reminder_enabled: !!data.reminder_enabled,
+      reminder_start_hour: data.reminder_start_hour,
+      reminder_end_hour: data.reminder_end_hour
+    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -667,6 +703,46 @@ app.post('/api/line/webhook', async (req, res) => {
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'))
 })
+
+async function sendDailyReminderIfNeeded() {
+  try {
+    const { data: prefs } = await supabase.from(PREF_TABLE)
+      .select('user_id, reminder_enabled, reminder_start_hour, reminder_end_hour, reminder_last_sent_date')
+      .eq('reminder_enabled', true)
+
+    if (!prefs || !prefs.length) return
+    const now = new Date()
+    const today = now.toISOString().slice(0, 10)
+
+    for (const pref of prefs) {
+      if (!isInReminderWindow(pref, now)) continue
+      if (pref.reminder_last_sent_date === today) continue
+
+      const records = await getRecordsByUser(pref.user_id)
+      const lastRecordDate = records.length ? new Date(records[records.length - 1].recorded_at) : null
+      const sameDay = lastRecordDate && lastRecordDate.toISOString().slice(0, 10) === today
+      if (sameDay) {
+        await supabase.from(PREF_TABLE).update({ reminder_last_sent_date: today, updated_at: new Date().toISOString() }).eq('user_id', pref.user_id)
+        continue
+      }
+
+      if (lineClient) {
+        await lineClient.pushMessage(pref.user_id, {
+          type: 'text',
+          text: '🔔 วันนี้ยังไม่ได้บันทึกเลขมิเตอร์นะ\nถ้าสะดวกพิมพ์เลขล่าสุดเข้ามาได้เลย'
+        })
+      }
+
+      await supabase.from(PREF_TABLE).update({ reminder_last_sent_date: today, updated_at: new Date().toISOString() }).eq('user_id', pref.user_id)
+      console.log('[REMINDER] sent to', pref.user_id)
+    }
+  } catch (error) {
+    console.error('[REMINDER] error:', error)
+  }
+}
+
+setInterval(sendDailyReminderIfNeeded, 15 * 60 * 1000)
+setTimeout(sendDailyReminderIfNeeded, 60 * 1000)
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n⚡ Electricity Tracker รันที่ http://localhost:${PORT}`)
