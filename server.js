@@ -362,11 +362,13 @@ app.post('/api/line/webhook', async (req, res) => {
         const prev = await getPrevRecord(userId)
         const units = prev && record.meter_value >= prev.meter_value
           ? record.meter_value - prev.meter_value
-          : 0
-        const cost = units * 8
+          : null
+        const cost = units ? +(units * 8).toFixed(2) : 0
         await lineClient.replyMessage(event.replyToken, {
           type: 'text',
-          text: `✅ บันทึกแล้ว\n\nเลขมิเตอร์ ${record.meter_value}\nหน่วยที่ใช้ ${cost > 0 ? units.toFixed(2) : 'รอรอบถัดไป'} หน่วย\nค่าไฟ ${cost.toFixed(0)} บาท\nเวลา ${new Date(record.recorded_at).toLocaleString('th-TH')}\n\n💡 ถ้าต้องการลบ ให้พิมพ์\nยกเลิก`
+          text: units !== null
+            ? `✅ บันทึกแล้ว\n\n${prev.meter_value} → ${record.meter_value}\nหน่วยที่ใช้ +${units.toFixed(2)} หน่วย = ${cost.toFixed(0)} บาท`
+            : `✅ บันทึกแล้ว\nเลขมิเตอร์ ${record.meter_value}\n(รอบแรก ยังไม่คิดหน่วย)`
         })
         console.log('[WEBHOOK] save reply sent')
         return
