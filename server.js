@@ -474,10 +474,10 @@ app.post('/api/line/webhook', async (req, res) => {
             {
               type: 'button',
               style: 'secondary',
-              color: '#c0392b',
+              color: '#1a1a18',
               action: {
                 type: 'postback',
-                label: '1a1a18',
+                label: 'ลบ',
                 data: `delete_record:${record.id}`
               }
             },
