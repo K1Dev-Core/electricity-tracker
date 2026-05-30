@@ -43,13 +43,8 @@ window.toggleInsights = function() {
   body.classList.toggle('open')
   icon.classList.toggle('open')
 }
-  const t = document.getElementById('liffToast')
-  if (!t) return showToast(msg)
-  t.textContent = msg
-  t.classList.add('show')
-  clearTimeout(t._tid)
-  t._tid = setTimeout(() => t.classList.remove('show'), 2600)
-}
+
+function showLiffToast(msg) {
 
 function fmtNum(n) {
   return (+n).toLocaleString('th-TH', { maximumFractionDigits: 2 })
