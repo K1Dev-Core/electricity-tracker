@@ -304,9 +304,22 @@ app.post('/api/line/webhook', async (req, res) => {
       if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary' || cmd === 'สรุป') {
         console.log('[WEBHOOK] processing latest')
         const records = await getRecordsByUser(userId)
+        const summary = formatSummary(records)
         await lineClient.replyMessage(event.replyToken, {
-          type: 'text',
-          text: formatSummary(records)
+          type: 'template',
+          altText: 'สรุปการใช้ไฟ',
+          template: {
+            type: 'buttons',
+            title: '⚡ Meter Tracker',
+            text: summary.slice(0, 160),
+            actions: [
+              {
+                type: 'uri',
+                label: '📊 เปิดแอป',
+                uri: 'https://liff.line.me/2010240368-w9rYgLNk'
+              }
+            ]
+          }
         })
         console.log('[WEBHOOK] latest reply sent')
         return
