@@ -437,6 +437,24 @@ app.post('/api/line/webhook', async (req, res) => {
           color: '#1a1a18'
         })
         bodyContents.push({ type: 'separator', color: '#e8e8e0' })
+
+        // — ยอดสะสมเดือนนี้ —
+        const now = new Date()
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        const allRecords = await getRecordsByUser(userId)
+        const allUsage = buildUsage(allRecords)
+        const monthUsage = allUsage.filter(r => r.recorded_at >= monthStart)
+        const monthUnits = monthUsage.reduce((s, r) => s + (r.units || 0), 0)
+        const monthCost = +(monthUnits * 8).toFixed(2)
+        bodyContents.push({
+          type: 'text',
+          text: `📆 เดือนนี้สะสม ${monthUnits.toFixed(2)} หน่วย รวม ${monthCost.toFixed(0)} บาท`,
+          size: 'sm',
+          color: '#1a1a18',
+          weight: 'bold',
+          wrap: true
+        })
+        bodyContents.push({ type: 'separator', color: '#e8e8e0' })
         
         if (units !== null) {
           bodyContents.push({
