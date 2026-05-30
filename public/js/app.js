@@ -1,4 +1,5 @@
 const RATE = 8
+let userRate = 8
 let records = []
 let chartMode = 'day'
 let chart = null
@@ -387,7 +388,7 @@ function render() {
     billingStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   }
   const billingUnits = usage.filter(r => r.recorded_at >= billingStart).reduce((s, r) => s + (r.units || 0), 0)
-  const billingCost = billingUnits * RATE
+  const billingCost = billingUnits * userRate
 
   // — badge รอบบิล —
   const billingLabel = new Date(billingStart).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
@@ -707,6 +708,7 @@ async function initPage() {
       showToast('โหลดข้อมูลไม่ได้: ' + e.message)
     })
   }
+  await fetchRate()
 }
 
 window.addRecord = addRecord
@@ -725,6 +727,42 @@ window.liffLogin = async () => {
 window.liffLogout = async () => {
   if (typeof liff === 'undefined') return showLiffToast('LINE ยังไม่พร้อม')
   try { liff.logout(); location.reload() } catch (e) { showLiffToast('Logout ไม่ได้') }
+}
+
+// ── Settings / Preferences ──
+async function fetchRate() {
+  try {
+    const res = await fetch('/api/preferences', { headers: lineUserId ? { 'x-line-user-id': lineUserId } : {} })
+    if (!res.ok) return
+    const data = await res.json()
+    userRate = parseFloat(data.rate) || 8
+    setEl('rateDisplay', userRate.toFixed(2) + ' บาท / หน่วย')
+  } catch (_) {}
+}
+
+window.openSettings = function() {
+  document.getElementById('settingsOverlay')?.classList.remove('hidden')
+  document.getElementById('rateInput').value = userRate
+}
+window.closeSettings = function() {
+  document.getElementById('settingsOverlay')?.classList.add('hidden')
+}
+window.saveSettings = async function() {
+  const val = parseFloat(document.getElementById('rateInput').value)
+  if (!val || val <= 0) return showToast('ใส่ราคาต่อหน่วยก่อน')
+  try {
+    const h = { 'Content-Type': 'application/json' }
+    if (lineUserId) h['x-line-user-id'] = lineUserId
+    const res = await fetch('/api/preferences', { method: 'PUT', headers: h, body: JSON.stringify({ rate: val }) })
+    if (!res.ok) throw new Error('บันทึกไม่ได้')
+    userRate = val
+    setEl('rateDisplay', val.toFixed(2) + ' บาท / หน่วย')
+    closeSettings()
+    render()
+    showToast('💾 บันทึกค่าไฟแล้ว')
+  } catch (e) {
+    showToast(e.message)
+  }
 }
 
 initPage()

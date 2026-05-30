@@ -448,6 +448,7 @@ app.post('/api/line/webhook', async (req, res) => {
       if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary' || cmd === 'สรุป') {
         console.log('[WEBHOOK] processing latest')
         const records = await getRecordsByUser(userId)
+        const RATE = await getUserRate(userId)
         const usage = buildUsage(records)
         
         // หารอบบิลล่าสุด
@@ -457,7 +458,7 @@ app.post('/api/line/webhook', async (req, res) => {
           : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
         const billingUsage = usage.filter(r => r.recorded_at >= billingStart)
         const billingUnits = billingUsage.reduce((s, r) => s + (r.units || 0), 0)
-        const billingCost = +(billingUnits * 8).toFixed(2)
+        const billingCost = +(billingUnits * RATE).toFixed(2)
         const billingStartLabel = new Date(billingStart).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
         
         const summary = formatSummary(records)
@@ -526,11 +527,12 @@ app.post('/api/line/webhook', async (req, res) => {
       if (/^\d+(\.\d+)?$/.test(cmd)) {
         console.log('[WEBHOOK] processing number save:', text)
         const record = await createRecord({ meter_value: text, note: 'LINE', user_id: userId, source: 'line' })
+        const RATE = await getUserRate(userId)
         const prev = await getPrevRecord(userId)
         const units = prev && record.meter_value >= prev.meter_value
           ? record.meter_value - prev.meter_value
           : null
-        const cost = units ? +(units * 8).toFixed(2) : 0
+        const cost = units ? +(units * RATE).toFixed(2) : 0
         
         const bodyContents = []
         bodyContents.push({
