@@ -20,6 +20,14 @@
       <span>Meter Tracker</span>
     </div>
     <p class="brand-sub">8 บาท / หน่วย</p>
+    <div class="command-help">
+      <div class="command-title">คำสั่งในแชต LINE</div>
+      <div class="command-items">
+        <span><code>8247</code> บันทึก</span>
+        <span><code>latest</code> ดูสรุป</span>
+        <span><code>cancel</code> ยกเลิก</span>
+      </div>
+    </div>
     <div class="stat-group">
       <div class="stat">
         <div class="stat-label">ครั้งล่าสุด</div>
@@ -159,8 +167,35 @@
     </section>
   </main>
 </div>
+<div class="liff-overlay hidden" id="liffRedirectOverlay">
+  <div class="liff-overlay-box">
+    <i class="ti ti-brand-line" aria-hidden="true"></i>
+    <h3>กรุณาเปิดผ่าน LINE</h3>
+    <p>แอปนี้ต้องใช้งานผ่าน LINE LIFF เท่านั้น</p>
+    <p class="liff-overlay-small">กำลังพาไปที่ LINE …</p>
+    <a class="btn-primary" href="https://lin.ee/WBT4ZSH" style="margin-top:12px;text-decoration:none">
+      <i class="ti ti-external-link" aria-hidden="true"></i>
+      เปิด LINE
+    </a>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="liff-toast" id="liffToast" aria-live="polite"></div>
+
+<!-- LINE overlay: แสดงเมื่อไม่ได้เปิดผ่าน LIFF -->
+<div class="line-overlay hidden" id="lineOverlay">
+  <div class="line-overlay-card">
+    <div class="line-overlay-icon">
+      <i class="ti ti-bolt"></i>
+    </div>
+    <h2>Meter Tracker</h2>
+    <p>กรุณาเปิดผ่าน LINE เพื่อใช้งาน</p>
+    <a class="btn-line" href="https://lin.ee/WBT4ZSH" target="_blank" rel="noopener">
+      <i class="ti ti-brand-line"></i> เปิดใน LINE
+    </a>
+    <p class="line-overlay-hint">หรือแอดเพื่อน LINE Official Account ก่อน</p>
+  </div>
+</div>
 <script src="/js/app.js"></script>
 </body>
 </html>

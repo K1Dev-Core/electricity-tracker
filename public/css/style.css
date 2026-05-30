@@ -119,3 +119,89 @@ td.note-cell { color: var(--ink-3); font-size:12px; white-space: nowrap; overflo
   .main { padding: .75rem .5rem 2.5rem; }
   .stat-value { font-size:18px; }
 }
+
+/* ─── LINE Overlay ──────────────────────────────────── */
+.line-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.line-overlay.hidden { display: none !important; }
+.line-overlay-card {
+  text-align: center;
+  max-width: 300px;
+  padding: 2rem;
+}
+.line-overlay-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.line-overlay-card h2 {
+  font-size: 18px;
+  margin-bottom: 0.5rem;
+}
+.line-overlay-card p {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-bottom: 1.5rem;
+  line-height: 1.7;
+}
+.btn-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #06c755;
+  color: #fff;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn-line:hover { opacity: 0.9; }
+.line-overlay-hint { font-size: 11px !important; margin-top: 0.75rem !important; }
+
+/* ─── Command Help ──────────────────────────────────── */
+.command-help {
+  margin: 0 0 1rem;
+}
+.command-title {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.command-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.command-items span {
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.command-items code {
+  font-family: var(--font-mono);
+  background: rgba(255,255,255,0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 4px;
+}

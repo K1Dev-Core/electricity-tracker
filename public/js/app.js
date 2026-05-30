@@ -98,6 +98,15 @@ async function initLiff() {
 function renderFallbackMode() {
   const badge = document.getElementById('liffStatusBadge')
   if (badge) badge.textContent = 'Standalone mode'
+  showLiffRedirect()
+}
+
+function showLiffRedirect() {
+  const overlay = document.getElementById('lineOverlay')
+  if (!overlay) return
+  overlay.classList.remove('hidden')
+}
+  }, 4000)
 }
 
 function renderLineLoginState(isLoggedIn) {
