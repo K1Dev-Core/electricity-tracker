@@ -77,7 +77,7 @@
     <!-- Chart -->
     <section class="card chart-card">
       <div class="card-head">
-        <i class="ti ti-chart-bar" aria-hidden="true"></i>
+        <i class="ti ti-chart-line" aria-hidden="true"></i>
         <h2>การใช้ไฟ</h2>
         <div class="tab-group" role="tablist">
           <button class="tab active" role="tab" onclick="switchTab('day',this)">รายวัน</button>
@@ -86,8 +86,25 @@
       </div>
       <div class="chart-wrap">
         <div class="chart-empty" id="chartEmpty">ยังไม่มีข้อมูลเพียงพอสำหรับกราฟ</div>
-        <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้า"></canvas>
+        <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้าแบบเส้น"></canvas>
       </div>
+    </section>
+
+    <!-- Heatmap -->
+    <section class="card heatmap-card">
+      <div class="card-head">
+        <i class="ti ti-grid-dots" aria-hidden="true"></i>
+        <h2>Heatmap รายวัน</h2>
+        <span class="heatmap-legend">
+          <span>น้อย</span>
+          <span class="swatch s1"></span>
+          <span class="swatch s2"></span>
+          <span class="swatch s3"></span>
+          <span class="swatch s4"></span>
+          <span>มาก</span>
+        </span>
+      </div>
+      <div class="heatmap-wrap" id="heatmapWrap"></div>
     </section>
 
     <!-- History -->

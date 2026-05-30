@@ -47,6 +47,7 @@ async function fetchRecords() {
     const res = await fetch('/api/records')
     if (!res.ok) throw new Error(await res.text())
     records = await res.json()
+    autoFillInputMeter()
     render()
   } catch (e) {
     showToast('โหลดข้อมูลไม่ได้: ' + e.message)
@@ -122,6 +123,46 @@ function getUsage() {
   })
 }
 
+function autoFillInputMeter() {
+  const meterEl = document.getElementById('inputMeter')
+  if (!meterEl || meterEl.value) return
+  const last = records[records.length - 1]
+  if (!last) return
+  const usage = getUsage().filter(r => r.units > 0)
+  const recentAvg = usage.length
+    ? usage.slice(-4).reduce((sum, r) => sum + r.units, 0) / Math.min(4, usage.length)
+    : 2.5
+  const suggested = Math.max(last.meter_value + 1, last.meter_value + Math.round(recentAvg || 2.5))
+  meterEl.value = suggested.toFixed(2).replace(/\.00$/, '')
+  meterEl.placeholder = `เดาไว้ก่อน: ${meterEl.value}`
+}
+
+function getHeatmapData(usage) {
+  if (!records.length) return []
+  const map = new Map()
+  const first = new Date(records[0].recorded_at)
+  const last = new Date(records[records.length - 1].recorded_at)
+  const cursor = new Date(first.getFullYear(), first.getMonth(), first.getDate())
+  const end = new Date(last.getFullYear(), last.getMonth(), last.getDate())
+  const dayMap = new Map(usage.map(r => [new Date(r.recorded_at).toDateString(), r.units]))
+
+  while (cursor <= end) {
+    const key = cursor.toDateString()
+    map.set(key, dayMap.get(key) || 0)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return [...map.entries()].map(([key, units]) => ({ key, units }))
+}
+
+function getHeatClass(v, max) {
+  if (max <= 0) return 's0'
+  const ratio = v / max
+  if (ratio < 0.2) return 's1'
+  if (ratio < 0.45) return 's2'
+  if (ratio < 0.75) return 's3'
+  return 's4'
+}
+
 // ── Render ─────────────────────────────────────────────
 function render() {
   const usage = getUsage()
@@ -149,6 +190,9 @@ function render() {
 
   // Chart
   renderChart(withData)
+
+  // Heatmap
+  renderHeatmap(usage)
 }
 
 function setEl(id, val) {
@@ -238,21 +282,28 @@ function renderChart(usageData) {
   if (chart) chart.destroy()
 
   chart = new Chart(canvas, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels,
       datasets: [{
         label: 'หน่วย',
         data,
-        backgroundColor: '#c8c8c0',
-        hoverBackgroundColor: '#1a1a18',
-        borderRadius: 4,
-        borderSkipped: false
+        borderColor: '#1a1a18',
+        backgroundColor: 'rgba(26, 26, 24, 0.08)',
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: '#1a1a18',
+        pointBorderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2.5,
+        tension: 0.38,
+        fill: true
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -294,11 +345,37 @@ function renderChart(usageData) {
   })
 }
 
+function renderHeatmap(usageData) {
+  const wrap = document.getElementById('heatmapWrap')
+  if (!wrap) return
+  wrap.innerHTML = ''
+
+  const days = getHeatmapData(usageData)
+  if (!days.length) {
+    wrap.innerHTML = '<div class="heatmap-empty">ยังไม่มีข้อมูลสำหรับ heatmap</div>'
+    return
+  }
+
+  const max = Math.max(...days.map(d => d.units), 0)
+  days.forEach(d => {
+    const cell = document.createElement('div')
+    cell.className = `heat-cell ${getHeatClass(d.units, max)}`
+    cell.title = `${d.key} · ${fmtNum(d.units)} หน่วย`
+    cell.innerHTML = `<span>${new Date(d.key).getDate()}</span>`
+    wrap.appendChild(cell)
+  })
+}
+
 // Enter key
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.activeElement.id !== 'inputNote') {
     addRecord()
   }
 })
+
+const inputMeter = document.getElementById('inputMeter')
+if (inputMeter) {
+  inputMeter.placeholder = 'เดาไว้ก่อน...'
+}
 
 fetchRecords()
