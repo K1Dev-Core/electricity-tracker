@@ -37,6 +37,13 @@ BEGIN
   ) THEN
     ALTER TABLE meter_readings ADD COLUMN user_id text;
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'meter_readings' AND column_name = 'is_billing_start'
+  ) THEN
+    ALTER TABLE meter_readings ADD COLUMN is_billing_start boolean NOT NULL DEFAULT false;
+  END IF;
 END
 $$;
 

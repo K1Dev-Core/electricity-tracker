@@ -94,7 +94,7 @@ async function getPrevRecord(userId) {
   return data[1]
 }
 
-async function createRecord({ meter_value, note, user_id, source = 'web' }) {
+async function createRecord({ meter_value, note, user_id, source = 'web', is_billing_start }) {
   const payload = {
     meter_value: parseFloat(meter_value),
     note: note || null,
@@ -102,6 +102,7 @@ async function createRecord({ meter_value, note, user_id, source = 'web' }) {
   }
   if (user_id !== undefined) payload.user_id = user_id
   if (source !== undefined) payload.source = source
+  if (is_billing_start !== undefined) payload.is_billing_start = is_billing_start
 
   const { data, error } = await supabase.from(READING_TABLE).insert([payload]).select().single()
   if (error) throw error
@@ -189,6 +190,25 @@ app.delete('/api/records/:id', async (req, res) => {
     const userId = getUserId(req)
     await deleteRecordById(req.params.id, userId)
     res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// — Toggle billing cycle start flag —
+app.patch('/api/records/:id/billing', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    const { id } = req.params
+    // Get current state
+    let query = supabase.from(READING_TABLE).select('is_billing_start').eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
+    const { data, error: getErr } = await query.single()
+    if (getErr) return res.status(404).json({ error: 'not found' })
+    const newVal = !data.is_billing_start
+    const { error: updErr } = await supabase.from(READING_TABLE).update({ is_billing_start: newVal }).eq('id', id)
+    if (updErr) return res.status(500).json({ error: updErr.message })
+    res.json({ success: true, is_billing_start: newVal })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -368,6 +388,18 @@ app.post('/api/line/webhook', async (req, res) => {
       if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary' || cmd === 'สรุป') {
         console.log('[WEBHOOK] processing latest')
         const records = await getRecordsByUser(userId)
+        const usage = buildUsage(records)
+        
+        // หารอบบิลล่าสุด
+        const billingRecords = records.filter(r => r.is_billing_start)
+        const billingStart = billingRecords.length > 0
+          ? billingRecords[billingRecords.length - 1].recorded_at
+          : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+        const billingUsage = usage.filter(r => r.recorded_at >= billingStart)
+        const billingUnits = billingUsage.reduce((s, r) => s + (r.units || 0), 0)
+        const billingCost = +(billingUnits * 8).toFixed(2)
+        const billingStartLabel = new Date(billingStart).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
+        
         const summary = formatSummary(records)
         await lineClient.replyMessage(event.replyToken, {
           type: 'flex',
@@ -396,6 +428,18 @@ app.post('/api/line/webhook', async (req, res) => {
                   wrap: true,
                   size: 'sm',
                   color: '#555555'
+                },
+                {
+                  type: 'separator',
+                  color: '#e8e8e0'
+                },
+                {
+                  type: 'text',
+                  text: `📆 วันที่เริ่มรอบบิล ${billingStartLabel}\nรวม ${billingUnits.toFixed(2)} หน่วย (${billingCost.toFixed(0)} บาท)`,
+                  wrap: true,
+                  size: 'sm',
+                  color: '#1a1a18',
+                  weight: 'bold'
                 },
                 {
                   type: 'separator',
@@ -438,17 +482,24 @@ app.post('/api/line/webhook', async (req, res) => {
         })
         bodyContents.push({ type: 'separator', color: '#e8e8e0' })
 
-        // — ยอดสะสมเดือนนี้ —
-        const now = new Date()
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        // — ยอดสะสมรอบบิล —
         const allRecords = await getRecordsByUser(userId)
         const allUsage = buildUsage(allRecords)
-        const monthUsage = allUsage.filter(r => r.recorded_at >= monthStart)
-        const monthUnits = monthUsage.reduce((s, r) => s + (r.units || 0), 0)
-        const monthCost = +(monthUnits * 8).toFixed(2)
+
+        // หาวันเริ่มรอบบิลล่าสุด
+        const billingRecords = allRecords.filter(r => r.is_billing_start)
+        const billingStart = billingRecords.length > 0
+          ? billingRecords[billingRecords.length - 1].recorded_at
+          : new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+
+        const billingUsage = allUsage.filter(r => r.recorded_at >= billingStart)
+        const billingUnits = billingUsage.reduce((s, r) => s + (r.units || 0), 0)
+        const billingCost = +(billingUnits * 8).toFixed(2)
+        const billingStartLabel = new Date(billingStart).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
+        
         bodyContents.push({
           type: 'text',
-          text: `📆 เดือนนี้สะสม ${monthUnits.toFixed(2)} หน่วย รวม ${monthCost.toFixed(0)} บาท`,
+          text: `📆 นับจากวันที่ ${billingStartLabel} รวม ${billingUnits.toFixed(2)} หน่วย (${billingCost.toFixed(0)} บาท)`,
           size: 'sm',
           color: '#1a1a18',
           weight: 'bold',

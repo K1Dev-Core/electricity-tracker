@@ -243,6 +243,22 @@ async function deleteRecord(id) {
   }
 }
 
+async function toggleBilling(id) {
+  try {
+    const h = { 'Content-Type': 'application/json' }
+    if (lineUserId) h['x-line-user-id'] = lineUserId
+    const res = await fetch('/api/records/' + id + '/billing', { method: 'PATCH', headers: h })
+    if (!res.ok) throw new Error('เปลี่ยนไม่ได้')
+    const data = await res.json()
+    const record = records.find(r => r.id === id)
+    if (record) record.is_billing_start = data.is_billing_start
+    render()
+    showToast(data.is_billing_start ? '📌 กำหนดเป็นวันเริ่มรอบบิล' : '○ ยกเลิกแล้ว')
+  } catch (e) {
+    showToast(e.message)
+  }
+}
+
 function getUsage() {
   return records.map((r, i) => {
     const units = i === 0 ? 0 : Math.max(0, r.meter_value - records[i - 1].meter_value)
@@ -347,12 +363,22 @@ function render() {
   const withData = usage.filter(r => r.units > 0)
   const last = withData[withData.length - 1]
 
-  const now = new Date()
-  const monthData = usage.filter(r => {
-    const d = new Date(r.recorded_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  })
-  const mU = monthData.reduce((s, r) => s + r.units, 0)
+  // — รอบบิล (billing cycle) —
+  const billingRecords = records.filter(r => r.is_billing_start)
+  let billingStart
+  if (billingRecords.length > 0) {
+    billingStart = billingRecords[billingRecords.length - 1].recorded_at
+  } else {
+    const now = new Date()
+    billingStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  }
+  const billingUnits = usage.filter(r => r.recorded_at >= billingStart).reduce((s, r) => s + (r.units || 0), 0)
+  const billingCost = billingUnits * RATE
+
+  // — badge รอบบิล —
+  const billingLabel = new Date(billingStart).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
+  setEl('billingLabel', billingLabel)
+  
   setEl('countBadge', records.length > 0 ? records.length + ' รายการ' : '')
 
   // Animated counters
@@ -360,9 +386,9 @@ function render() {
   else setEl('lastUnit', '—')
   if (last) animateCounter('lastCost', last.cost)
   else setEl('lastCost', '—')
-  if (mU > 0) animateCounter('monthUnit', mU)
+  if (billingUnits > 0) animateCounter('monthUnit', billingUnits)
   else setEl('monthUnit', '—')
-  if (mU > 0) animateCounter('monthCost', mU * RATE)
+  if (billingCost > 0) animateCounter('monthCost', billingCost)
   else setEl('monthCost', '—')
 
   updateAlerts(usage)
@@ -383,9 +409,11 @@ function renderTable(usage) {
   const reversed = [...usage].reverse()
   reversed.forEach(r => {
     const isFirst = records.findIndex(x => x.id === r.id) === 0
+    const record = records.find(x => x.id === r.id)
     const tr = document.createElement('tr')
     const usagePill = isFirst ? '<span class="pill pill-gray">เริ่มต้น</span>' : '<span class="pill pill-green">+' + fmtNum(r.units) + '</span>'
     const costCell = isFirst ? '—' : fmtNum(r.cost) + ' ฿'
+    const billingIcon = record?.is_billing_start ? '📌' : '○'
     tr.innerHTML = `
       <td>${fmtDate(r.recorded_at)}</td>
       <td>${fmtTime(r.recorded_at)}</td>
@@ -393,7 +421,10 @@ function renderTable(usage) {
       <td class="num-col">${usagePill}</td>
       <td class="num-col">${costCell}</td>
       <td class="note-cell">${r.note || ''}</td>
-      <td><button class="btn-del" onclick="deleteRecord(${r.id})" aria-label="ลบรายการ"><i class="ti ti-trash" aria-hidden="true"></i></button></td>`
+      <td>
+        <button class="btn-billing" onclick="toggleBilling(${r.id})" title="กำหนดเป็นวันเริ่มรอบบิล">${billingIcon}</button>
+        <button class="btn-del" onclick="deleteRecord(${r.id})" aria-label="ลบรายการ"><i class="ti ti-trash" aria-hidden="true"></i></button>
+      </td>`
     tbody.appendChild(tr)
   })
 }

@@ -95,6 +95,8 @@ td.note-cell { color: var(--ink-3); font-size:12px; white-space: nowrap; overflo
 .pill-gray { background: var(--line-2); color: var(--ink-3); }
 .btn-del { width:28px; height:28px; border-radius: var(--r-sm); border:1px solid transparent; background:none; color: var(--ink-4); cursor:pointer; }
 .btn-del:hover { color: var(--danger); border-color: var(--danger); }
+.btn-billing { width:28px; height:28px; border-radius: var(--r-sm); border:1px solid transparent; background:none; color: var(--ink-4); cursor:pointer; font-size:13px; }
+.btn-billing:hover { color: var(--ink); border-color: var(--ink); }
 .table-empty { display:none; flex-direction:column; align-items:center; gap:10px; padding:3rem 1rem; color: var(--ink-4); }
 .table-empty.show { display:flex; }
 .toast, .liff-toast { position: fixed; bottom:1.5rem; left:50%; transform: translateX(-50%) translateY(8px); background: var(--ink); color:#fff; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition: opacity .2s, transform .2s; white-space: nowrap; z-index:999; }
