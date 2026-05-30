@@ -40,11 +40,6 @@ if (!LIFF_ID) {
 }
 
 app.use(cors())
-
-// — ใช้ raw body (Buffer) สำหรับ webhook route —
-app.use('/api/line/webhook', express.raw({ type: '*/*' }))
-
-// — routes ปกติใช้ JSON body —
 app.use(express.json())
 app.use(express.static(staticDir))
 
@@ -227,10 +222,17 @@ app.post('/api/liff/action', async (req, res) => {
 
 app.post('/api/line/webhook', async (req, res) => {
   try {
-    if (!lineClient) return res.status(503).json({ error: 'line not configured' })
+    console.log('[WEBHOOK] 🔔 Received webhook call')
+    console.log('[WEBHOOK] Headers:', JSON.stringify(req.headers))
+    
+    if (!lineClient) {
+      console.log('[WEBHOOK] ❌ lineClient is null')
+      return res.status(503).json({ error: 'line not configured' })
+    }
 
-    // — ตรวจสอบ signature ด้วย raw Buffer —
     const rawBody = req.body
+    console.log('[WEBHOOK] rawBody type:', typeof rawBody, 'isBuffer:', Buffer.isBuffer(rawBody))
+    
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '')
     const signature = req.headers['x-line-signature'] || ''
     const expected = crypto
@@ -238,53 +240,80 @@ app.post('/api/line/webhook', async (req, res) => {
       .update(Buffer.isBuffer(rawBody) ? rawBody : bodyStr)
       .digest('base64')
 
+    console.log('[WEBHOOK] signature from LINE:', signature)
+    console.log('[WEBHOOK] expected signature:', expected)
+    console.log('[WEBHOOK] match:', signature === expected)
+
     if (signature !== expected) {
-      console.warn('⚠️ LINE webhook signature mismatch')
+      console.warn('[WEBHOOK] ⚠️ LINE webhook signature mismatch')
       return res.json({ ok: true })
     }
 
-    const events = JSON.parse(bodyStr).events || []
+    const parsed = JSON.parse(bodyStr)
+    const events = parsed.events || []
+    console.log('[WEBHOOK] events count:', events.length)
 
     await Promise.all(events.map(async event => {
-      if (event.type !== 'message' || event.message.type !== 'text') return
+      console.log('[WEBHOOK] event type:', event.type, 'message type:', event.message?.type)
+      
+      if (event.type !== 'message' || event.message.type !== 'text') {
+        console.log('[WEBHOOK] skipping non-text message')
+        return
+      }
+      
       const userId = event.source?.userId
       const text = String(event.message.text || '').trim()
-      const cmd = normalizeCommand(text)
+      const cmd = text.toLowerCase().trim()
+      
+      console.log('[WEBHOOK] userId:', userId, 'text:', text, 'cmd:', cmd)
 
-      if (!userId) return
+      if (!userId) {
+        console.log('[WEBHOOK] no userId, skipping')
+        return
+      }
 
       if (cmd === 'cancel' || cmd === 'undo' || cmd === 'ยกเลิก') {
+        console.log('[WEBHOOK] processing cancel')
         const deleted = await deleteLastRecord(userId)
+        console.log('[WEBHOOK] deleted:', deleted)
         await lineClient.replyMessage(event.replyToken, {
           type: 'text',
           text: deleted
             ? `ยกเลิกรายการล่าสุดแล้ว\nเลขมิเตอร์ ${deleted.meter_value}`
             : 'ยังไม่มีรายการให้ยกเลิก'
         })
+        console.log('[WEBHOOK] cancel reply sent')
         return
       }
 
       if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary') {
+        console.log('[WEBHOOK] processing latest')
         const records = await getRecordsByUser(userId)
         await lineClient.replyMessage(event.replyToken, {
           type: 'text',
           text: formatSummary(records)
         })
+        console.log('[WEBHOOK] latest reply sent')
         return
       }
 
       if (/^\d+(\.\d+)?$/.test(cmd)) {
+        console.log('[WEBHOOK] processing number save:', text)
         const record = await createRecord({ meter_value: text, note: 'LINE', user_id: userId, source: 'line' })
         await lineClient.replyMessage(event.replyToken, {
           type: 'text',
           text: `บันทึกแล้ว\nเลขมิเตอร์ ${record.meter_value}\nเวลา ${new Date(record.recorded_at).toLocaleString('th-TH')}`
         })
+        console.log('[WEBHOOK] save reply sent')
+        return
       }
+      
+      console.log('[WEBHOOK] unhandled command:', cmd)
     }))
 
     res.json({ ok: true })
   } catch (error) {
-    console.error('❌ Webhook error:', error)
+    console.error('[WEBHOOK] ❌ Error:', error)
     res.json({ ok: true })
   }
 })
