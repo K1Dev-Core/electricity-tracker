@@ -277,9 +277,10 @@ async function toggleBilling(id) {
 }
 
 function getUsage() {
+  const rate = userRate > 0 ? userRate : 8
   return records.map((r, i) => {
     const units = i === 0 ? 0 : Math.max(0, r.meter_value - records[i - 1].meter_value)
-    return { ...r, units, cost: +(units * RATE).toFixed(2) }
+    return { ...r, units, cost: +(units * rate).toFixed(2) }
   })
 }
 
@@ -370,6 +371,47 @@ function animateCounter(elId, target, suffix = '') {
     }
   }
   requestAnimationFrame(tick)
+}
+
+
+async function loadPreferences() {
+  try {
+    const h = lineUserId ? { 'x-line-user-id': lineUserId } : {}
+    const res = await fetch('/api/preferences', { headers: h })
+    if (res.ok) {
+      const data = await res.json()
+      userRate = data.rate || 8
+    }
+  } catch (_) {}
+}
+
+window.openSettings = function() {
+  document.getElementById('inputRate').value = userRate
+  document.getElementById('settingsModal').classList.remove('hidden')
+}
+
+window.closeSettings = function() {
+  document.getElementById('settingsModal').classList.add('hidden')
+}
+
+window.saveSettings = function() {
+  const rate = parseFloat(document.getElementById('inputRate').value)
+  if (!rate || rate <= 0) return showToast('กรุณาใส่ราคาค่าไฟต่อหน่วย')
+  fetch('/api/preferences', {
+    method: 'PUT',
+    headers: lineUserId ? { 'Content-Type': 'application/json', 'x-line-user-id': lineUserId } : { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rate })
+  }).then(res => {
+    if (res.ok) {
+      userRate = rate
+      closeSettings()
+      // re-render with new rate
+      render()
+      showToast('บันทึกแล้ว')
+    } else {
+      showToast('บันทึกไม่ได้')
+    }
+  })
 }
 
 function render() {
@@ -702,13 +744,13 @@ async function initPage() {
   cancelBtn = document.getElementById('btnCancelLast')
   latestBtn = document.getElementById('btnShowLatest')
   await initLiff().catch(() => showOverlay())
+  await fetchRate()
   if (!lineUserId) {
     await fetchRecords().catch(e => {
       hideLoading()
       showToast('โหลดข้อมูลไม่ได้: ' + e.message)
     })
   }
-  await fetchRate()
 }
 
 window.addRecord = addRecord
@@ -736,33 +778,7 @@ async function fetchRate() {
     if (!res.ok) return
     const data = await res.json()
     userRate = parseFloat(data.rate) || 8
-    setEl('rateDisplay', userRate.toFixed(2) + ' บาท / หน่วย')
   } catch (_) {}
-}
-
-window.openSettings = function() {
-  document.getElementById('settingsOverlay')?.classList.remove('hidden')
-  document.getElementById('rateInput').value = userRate
-}
-window.closeSettings = function() {
-  document.getElementById('settingsOverlay')?.classList.add('hidden')
-}
-window.saveSettings = async function() {
-  const val = parseFloat(document.getElementById('rateInput').value)
-  if (!val || val <= 0) return showToast('ใส่ราคาต่อหน่วยก่อน')
-  try {
-    const h = { 'Content-Type': 'application/json' }
-    if (lineUserId) h['x-line-user-id'] = lineUserId
-    const res = await fetch('/api/preferences', { method: 'PUT', headers: h, body: JSON.stringify({ rate: val }) })
-    if (!res.ok) throw new Error('บันทึกไม่ได้')
-    userRate = val
-    setEl('rateDisplay', val.toFixed(2) + ' บาท / หน่วย')
-    closeSettings()
-    render()
-    showToast('💾 บันทึกค่าไฟแล้ว')
-  } catch (e) {
-    showToast(e.message)
-  }
 }
 
 initPage()
