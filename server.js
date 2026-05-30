@@ -306,19 +306,49 @@ app.post('/api/line/webhook', async (req, res) => {
         const records = await getRecordsByUser(userId)
         const summary = formatSummary(records)
         await lineClient.replyMessage(event.replyToken, {
-          type: 'template',
+          type: 'flex',
           altText: 'สรุปการใช้ไฟ',
-          template: {
-            type: 'buttons',
-            title: '⚡ Meter Tracker',
-            text: summary.slice(0, 160),
-            actions: [
-              {
-                type: 'uri',
-                label: '📊 เปิดแอป',
-                uri: 'https://liff.line.me/2010240368-w9rYgLNk'
-              }
-            ]
+          contents: {
+            type: 'bubble',
+            size: 'giga',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: [
+                {
+                  type: 'text',
+                  text: '⚡ Meter Tracker',
+                  weight: 'bold',
+                  size: 'xl'
+                },
+                {
+                  type: 'separator',
+                  color: '#e8e8e0'
+                },
+                {
+                  type: 'text',
+                  text: summary,
+                  wrap: true,
+                  size: 'sm',
+                  color: '#555555'
+                },
+                {
+                  type: 'separator',
+                  color: '#e8e8e0'
+                },
+                {
+                  type: 'button',
+                  style: 'primary',
+                  color: '#1a1a18',
+                  action: {
+                    type: 'uri',
+                    label: '📊 เปิดแอป',
+                    uri: 'https://liff.line.me/2010240368-w9rYgLNk'
+                  }
+                }
+              ]
+            }
           }
         })
         console.log('[WEBHOOK] latest reply sent')
