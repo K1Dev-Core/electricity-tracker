@@ -206,7 +206,7 @@ async function addRecord() {
     meterEl.value = ''
     noteEl.value = ''
     render()
-    showToast('บันทึกเรียบร้อย')
+    showToast('บันทึกเรียบร้อย ')
   } catch (e) {
     showToast('บันทึกไม่ได้: ' + e.message)
   } finally {

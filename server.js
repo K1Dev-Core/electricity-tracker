@@ -84,6 +84,16 @@ async function getRecordsByUser(userId) {
   return data || []
 }
 
+async function getPrevRecord(userId) {
+  // ดึง 2 รายการล่าสุด → อันที่ 2 คือก่อนรายการที่เพิ่งบันทึก
+  let query = supabase.from(READING_TABLE).select('meter_value').order('recorded_at', { ascending: false }).limit(2)
+  if (userId) query = query.eq('user_id', userId)
+  const { data, error } = await query
+  if (error) throw error
+  if (!data || data.length < 2) return null
+  return data[1]
+}
+
 async function createRecord({ meter_value, note, user_id, source = 'web' }) {
   const payload = {
     meter_value: parseFloat(meter_value),
@@ -277,7 +287,7 @@ app.post('/api/line/webhook', async (req, res) => {
         return
       }
 
-      if (cmd === 'cancel' || cmd === 'undo' || cmd === 'ยกเลิก') {
+      if (cmd === 'cancel' || cmd === 'undo' || cmd === 'ยกเลิก' || cmd === 'ลบ') {
         console.log('[WEBHOOK] processing cancel')
         const deleted = await deleteLastRecord(userId)
         console.log('[WEBHOOK] deleted:', deleted)
@@ -291,7 +301,7 @@ app.post('/api/line/webhook', async (req, res) => {
         return
       }
 
-      if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary') {
+      if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary' || cmd === 'สรุป') {
         console.log('[WEBHOOK] processing latest')
         const records = await getRecordsByUser(userId)
         await lineClient.replyMessage(event.replyToken, {
@@ -305,9 +315,15 @@ app.post('/api/line/webhook', async (req, res) => {
       if (/^\d+(\.\d+)?$/.test(cmd)) {
         console.log('[WEBHOOK] processing number save:', text)
         const record = await createRecord({ meter_value: text, note: 'LINE', user_id: userId, source: 'line' })
+        // คำนวณหน่วยที่ใช้
+        const prev = await getPrevRecord(userId)
+        const units = prev && record.meter_value >= prev.meter_value
+          ? record.meter_value - prev.meter_value
+          : 0
+        const cost = units * 8
         await lineClient.replyMessage(event.replyToken, {
           type: 'text',
-          text: `บันทึกแล้ว\nเลขมิเตอร์ ${record.meter_value}\nเวลา ${new Date(record.recorded_at).toLocaleString('th-TH')}`
+          text: `✅ บันทึกแล้ว\n\nเลขมิเตอร์ ${record.meter_value}\nหน่วยที่ใช้ ${cost > 0 ? units.toFixed(2) : 'รอรอบถัดไป'} หน่วย\nค่าไฟ ${cost.toFixed(0)} บาท\nเวลา ${new Date(record.recorded_at).toLocaleString('th-TH')}\n\n💡 ถ้าต้องการลบ ให้พิมพ์\nยกเลิก`
         })
         console.log('[WEBHOOK] save reply sent')
         return
