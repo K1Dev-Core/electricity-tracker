@@ -29,6 +29,21 @@ function showToast(msg) {
 
 function showLiffToast(msg) {
   const t = document.getElementById('liffToast')
+  if (!t) return
+  t.textContent = msg
+  t.classList.add('show')
+  clearTimeout(t._tid)
+  t._tid = setTimeout(() => t.classList.remove('show'), 2400)
+}
+
+window.toggleInsights = function() {
+  const body = document.getElementById('insightBody')
+  const icon = document.getElementById('insightToggleIcon')
+  if (!body || !icon) return
+  body.classList.toggle('open')
+  icon.classList.toggle('open')
+}
+  const t = document.getElementById('liffToast')
   if (!t) return showToast(msg)
   t.textContent = msg
   t.classList.add('show')
@@ -518,6 +533,9 @@ function updateAlerts(usage) {
   setEl('monthCompareLabel', trend.monthCompareLabel)
   applyAlert(dayBadge, todayUnits, avgDay, 'วันนี้')
   applyAlert(weekBadge, weekUnits, avgUnits(usage, 30), 'สัปดาห์นี้')
+  // แสดง badge เมื่อมีข้อมูล
+  if (dayBadge) dayBadge.classList.remove('hidden')
+  if (weekBadge) weekBadge.classList.remove('hidden')
 }
 
 function applyAlert(el, current, avg, label) {

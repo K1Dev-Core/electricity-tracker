@@ -84,34 +84,37 @@
     <div id="mainContent"><!-- main content wrapper for loading toggle -->
 
     <section class="card insights-card">
-      <div class="card-head">
+      <div class="card-head collapsible-head" onclick="toggleInsights()" role="button" tabindex="0">
         <i class="ti ti-activity" aria-hidden="true"></i>
         <h2>สรุปแนวโน้มการใช้ไฟ</h2>
         <div class="insight-badges">
-          <span class="mini-badge" id="dayAlertBadge">รอข้อมูล</span>
-          <span class="mini-badge" id="weekAlertBadge">รอข้อมูล</span>
+          <span class="mini-badge hidden" id="dayAlertBadge">รอข้อมูล</span>
+          <span class="mini-badge hidden" id="weekAlertBadge">รอข้อมูล</span>
         </div>
+        <i class="ti ti-chevron-down collapse-icon" id="insightToggleIcon" aria-hidden="true"></i>
       </div>
-      <div class="insight-grid">
-        <div class="insight-box">
-          <span class="insight-label">ค่าเฉลี่ยต่อวัน</span>
-          <strong class="insight-value" id="avgDayUnit">—</strong>
-          <span class="insight-sub">หน่วย</span>
-        </div>
-        <div class="insight-box">
-          <span class="insight-label">วันใช้สูงสุด</span>
-          <strong class="insight-value" id="peakDayUnit">—</strong>
-          <span class="insight-sub" id="peakDayLabel">—</span>
-        </div>
-        <div class="insight-box">
-          <span class="insight-label">วันใช้ต่ำสุด</span>
-          <strong class="insight-value" id="lowDayUnit">—</strong>
-          <span class="insight-sub" id="lowDayLabel">—</span>
-        </div>
-        <div class="insight-box">
-          <span class="insight-label">เทียบเดือนก่อน</span>
-          <strong class="insight-value" id="monthCompareValue">—</strong>
-          <span class="insight-sub" id="monthCompareLabel">—</span>
+      <div class="insight-body" id="insightBody">
+        <div class="insight-grid">
+          <div class="insight-box">
+            <span class="insight-label">ค่าเฉลี่ยต่อวัน</span>
+            <strong class="insight-value" id="avgDayUnit">—</strong>
+            <span class="insight-sub">หน่วย</span>
+          </div>
+          <div class="insight-box">
+            <span class="insight-label">วันใช้สูงสุด</span>
+            <strong class="insight-value" id="peakDayUnit">—</strong>
+            <span class="insight-sub" id="peakDayLabel">—</span>
+          </div>
+          <div class="insight-box">
+            <span class="insight-label">วันใช้ต่ำสุด</span>
+            <strong class="insight-value" id="lowDayUnit">—</strong>
+            <span class="insight-sub" id="lowDayLabel">—</span>
+          </div>
+          <div class="insight-box">
+            <span class="insight-label">เทียบเดือนก่อน</span>
+            <strong class="insight-value" id="monthCompareValue">—</strong>
+            <span class="insight-sub" id="monthCompareLabel">—</span>
+          </div>
         </div>
       </div>
     </section>

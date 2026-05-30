@@ -40,6 +40,21 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--ink); 
 .card-head { display:flex; align-items:center; gap:8px; padding:1rem 1.25rem; border-bottom:1px solid var(--line-2); }
 .card-head h2 { font-size:13px; font-weight:600; color: var(--ink-2); flex:1; }
 .card-head .ti { color: var(--ink-3); }
+
+/* ─── Collapsible Insights ─────────────────────────── */
+.collapsible-head { cursor: pointer; user-select: none; }
+.collapse-icon { transition: transform .3s ease; font-size: 16px; color: var(--ink-3); margin-left: auto; }
+.collapse-icon.open { transform: rotate(180deg); }
+.insight-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .35s ease, opacity .2s ease;
+  opacity: 0;
+}
+.insight-body.open {
+  max-height: 300px;
+  opacity: 1;
+}
 .form-body { padding: 1.25rem; display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; align-items:end; }
 .field { display:flex; flex-direction:column; gap:5px; }
 .field label { font-size:11px; font-weight:600; color: var(--ink-3); text-transform:uppercase; }

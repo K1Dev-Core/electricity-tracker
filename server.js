@@ -292,8 +292,31 @@ app.post('/api/line/webhook', async (req, res) => {
         const userId = event.source?.userId
         if (!userId) return
         const data = event.postback?.data || ''
+
+        // ── set_billing ──
+        const billingMatch = data.match(/^set_billing:(\d+)$/)
+        if (billingMatch) {
+          const recordId = parseInt(billingMatch[1], 10)
+          console.log('[WEBHOOK] postback set billing:', recordId)
+          try {
+            await supabase.from(READING_TABLE).update({ is_billing_start: true }).eq('id', recordId)
+            await lineClient.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '📌 กำหนดเป็นวันแรกของรอบบิลแล้ว\nรายการนี้ถูกนับเป็นจุดเริ่มต้นรอบบิล'
+            })
+          } catch (e) {
+            console.error('[WEBHOOK] set billing failed:', e)
+            await lineClient.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '❌ กำหนดไม่ได้'
+            })
+          }
+          return
+        }
+
+        // ── delete_record ──
         const match = data.match(/^delete_record:(\d+)$/)
-        if (!match) return
+        if (!match) { console.log('[WEBHOOK] unknown postback:', data); return }
         const recordId = parseInt(match[1], 10)
         console.log('[WEBHOOK] postback delete record:', recordId)
         try {
@@ -530,34 +553,44 @@ app.post('/api/line/webhook', async (req, res) => {
         
         bodyContents.push({ type: 'separator', color: '#e8e8e0' })
         
-        // Buttons row
-        const btnBox = {
-          type: 'box',
-          layout: 'vertical',
-          spacing: 'sm',
-          contents: [
-            {
-              type: 'button',
-              style: 'primary',
-              color: '#1a1a18',
-              action: {
-                type: 'postback',
-                label: 'ลบ',
-                data: `delete_record:${record.id}`
-              }
-            },
-            {
-              type: 'button',
-              style: 'primary',
-              color: '#1a1a18',
-              action: {
-                type: 'uri',
-                label: 'เปิดแอป',
-                uri: 'https://liff.line.me/2010240368-w9rYgLNk'
-              }
+        // ── ปุ่ม ──
+        const btns = [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#c0392b',
+            action: {
+              type: 'postback',
+              label: 'ลบ',
+              data: `delete_record:${record.id}`
             }
-          ]
+          }
+        ]
+        // ถ้ายังไม่มีรอบบิล → เพิ่มปุ่มตั้งวันเริ่ม
+        if (!billingRecords.length) {
+          btns.push({
+            type: 'button',
+            style: 'secondary',
+            color: '#1a1a18',
+            action: {
+              type: 'postback',
+              label: '📌 ตั้งเป็นวันแรกของรอบบิล',
+              data: `set_billing:${record.id}`
+            }
+          })
         }
+        btns.push({
+          type: 'button',
+          style: 'primary',
+          color: '#1a1a18',
+          action: {
+            type: 'uri',
+            label: 'เปิดแอป',
+            uri: 'https://liff.line.me/2010240368-w9rYgLNk'
+          }
+        })
+
+        const btnBox = { type: 'box', layout: 'vertical', spacing: 'sm', contents: btns }
         bodyContents.push(btnBox)
 
         await lineClient.replyMessage(event.replyToken, {
