@@ -546,14 +546,23 @@ function renderHeatmap(usageData, mode = 'day') {
   }
   skeleton.classList.add('hidden')
   const max = Math.max(...days.map(d => d.units), 0)
+  // หาวันที่มี is_billing_start
+  const billingDates = new Set(
+    records.filter(r => r.is_billing_start)
+      .map(r => new Date(r.recorded_at).toDateString())
+  )
   days.forEach(d => {
     const cell = document.createElement('button')
     cell.type = 'button'
     cell.className = `heat-cell ${getHeatClass(d.units, max)}`
+    if (billingDates.has(d.key)) cell.classList.add('heat-cell-billing')
     cell.title = mode === 'year'
       ? `${d.key} · ${fmtNum(d.units)} หน่วย`
       : `${new Date(d.key).toLocaleDateString('th-TH')} · ${fmtNum(d.units)} หน่วย`
-    cell.innerHTML = `<span>${mode === 'year' ? d.key.slice(-2) : new Date(d.key).getDate()}</span>`
+    const label = mode === 'year' ? d.key.slice(-2) : new Date(d.key).getDate()
+    cell.innerHTML = billingDates.has(d.key)
+      ? `<span class="heat-pin">📌</span><span>${label}</span>`
+      : `<span>${label}</span>`
     grid.appendChild(cell)
   })
 }
