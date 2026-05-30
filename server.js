@@ -41,8 +41,8 @@ if (!LIFF_ID) {
 
 app.use(cors())
 
-// — ใช้ raw body สำหรับ webhook route ก่อน —
-app.use('/api/line/webhook', express.text({ type: '*/*' }))
+// — ใช้ raw body (Buffer) สำหรับ webhook route —
+app.use('/api/line/webhook', express.raw({ type: '*/*' }))
 
 // — routes ปกติใช้ JSON body —
 app.use(express.json())
@@ -229,22 +229,21 @@ app.post('/api/line/webhook', async (req, res) => {
   try {
     if (!lineClient) return res.status(503).json({ error: 'line not configured' })
 
-    // — ตรวจสอบ signature ด้วย raw body —
-    const body = req.body || ''
+    // — ตรวจสอบ signature ด้วย raw Buffer —
+    const rawBody = req.body
+    const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '')
     const signature = req.headers['x-line-signature'] || ''
     const expected = crypto
       .createHmac('SHA256', lineConfig.channelSecret)
-      .update(body)
+      .update(Buffer.isBuffer(rawBody) ? rawBody : bodyStr)
       .digest('base64')
 
-    // แจ้งเตือน log ถ้า signature ไม่ตรง
     if (signature !== expected) {
       console.warn('⚠️ LINE webhook signature mismatch')
-      // LINE จะ retry เองถ้า status != 200
       return res.json({ ok: true })
     }
 
-    const events = JSON.parse(body).events || []
+    const events = JSON.parse(bodyStr).events || []
 
     await Promise.all(events.map(async event => {
       if (event.type !== 'message' || event.message.type !== 'text') return
