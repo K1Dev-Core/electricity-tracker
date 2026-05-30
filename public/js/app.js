@@ -185,6 +185,9 @@ function render() {
   // Count badge
   setEl('countBadge', records.length > 0 ? records.length + ' รายการ' : '')
 
+  // Alerts
+  updateAlerts(usage)
+
   // Table
   renderTable(usage)
 
@@ -346,24 +349,96 @@ function renderChart(usageData) {
 }
 
 function renderHeatmap(usageData) {
-  const wrap = document.getElementById('heatmapWrap')
-  if (!wrap) return
-  wrap.innerHTML = ''
+  const grid = document.getElementById('heatmapGrid')
+  const skeleton = document.getElementById('heatmapSkeleton')
+  const empty = document.getElementById('heatmapEmpty')
+  if (!grid || !skeleton || !empty) return
 
+  grid.innerHTML = ''
   const days = getHeatmapData(usageData)
   if (!days.length) {
-    wrap.innerHTML = '<div class="heatmap-empty">ยังไม่มีข้อมูลสำหรับ heatmap</div>'
+    skeleton.classList.add('hidden')
+    empty.classList.remove('hidden')
     return
   }
 
+  skeleton.classList.add('hidden')
+  empty.classList.add('hidden')
+
   const max = Math.max(...days.map(d => d.units), 0)
-  days.forEach(d => {
-    const cell = document.createElement('div')
-    cell.className = `heat-cell ${getHeatClass(d.units, max)}`
-    cell.title = `${d.key} · ${fmtNum(d.units)} หน่วย`
-    cell.innerHTML = `<span>${new Date(d.key).getDate()}</span>`
-    wrap.appendChild(cell)
-  })
+  const monthMap = new Map()
+  days.forEach(d => monthMap.set(d.key, d.units))
+
+  const start = new Date(days[0].key)
+  start.setDate(1)
+  const end = new Date(days[days.length - 1].key)
+  const cursor = new Date(start)
+
+  while (cursor <= end) {
+    const key = cursor.toDateString()
+    const units = monthMap.get(key) || 0
+    const cell = document.createElement('button')
+    cell.type = 'button'
+    cell.className = `heat-cell ${getHeatClass(units, max)}`
+    cell.title = `${cursor.toLocaleDateString('th-TH')} · ${fmtNum(units)} หน่วย`
+    cell.innerHTML = `<span>${cursor.getDate()}</span>`
+    grid.appendChild(cell)
+    cursor.setDate(cursor.getDate() + 1)
+  }
+}
+
+function updateAlerts(usage) {
+  const dayBadge = document.getElementById('dayAlertBadge')
+  const weekBadge = document.getElementById('weekAlertBadge')
+  const today = new Date().toDateString()
+  const todayUnits = usage.find(r => new Date(r.recorded_at).toDateString() === today)?.units || 0
+  const weekUnits = getLastDaysUnits(usage, 7)
+  const dayAvg = avgUnits(usage, 7)
+  const weekAvg = avgUnits(usage, 30)
+
+  setEl('todayUnit', todayUnits > 0 ? fmtNum(todayUnits) : '—')
+  setEl('weekUnit', fmtNum(weekUnits))
+  setEl('avgDayUnit', dayAvg > 0 ? fmtNum(dayAvg) : '—')
+
+  applyAlert(dayBadge, todayUnits, dayAvg, 'วันนี้')
+  applyAlert(weekBadge, weekUnits, weekAvg, 'สัปดาห์นี้')
+}
+
+function applyAlert(el, current, avg, label) {
+  if (!el) return
+  if (!avg || current === 0) {
+    el.textContent = 'รอข้อมูล'
+    el.className = 'mini-badge'
+    return
+  }
+  const ratio = current / avg
+  if (ratio >= 1.35) {
+    el.textContent = `${label}: สูงผิดปกติ`
+    el.className = 'mini-badge danger'
+  } else if (ratio >= 1.1) {
+    el.textContent = `${label}: เริ่มสูง`
+    el.className = 'mini-badge warn'
+  } else {
+    el.textContent = `${label}: ปกติ`
+    el.className = 'mini-badge ok'
+  }
+}
+
+function getLastDaysUnits(usage, days) {
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - (days - 1))
+  return usage
+    .filter(r => {
+      const d = new Date(r.recorded_at)
+      return d >= start && d <= end
+    })
+    .reduce((s, r) => s + r.units, 0)
+}
+
+function avgUnits(usage, days) {
+  if (!usage.length) return 0
+  return getLastDaysUnits(usage, days) / days
 }
 
 // Enter key
@@ -376,6 +451,13 @@ document.addEventListener('keydown', e => {
 const inputMeter = document.getElementById('inputMeter')
 if (inputMeter) {
   inputMeter.placeholder = 'เดาไว้ก่อน...'
+}
+
+function switchHeatmap(mode, el) {
+  document.querySelectorAll('.heatmap-card .tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  const usage = getUsage().filter(r => r.units > 0)
+  renderHeatmap(usage, mode)
 }
 
 fetchRecords()
