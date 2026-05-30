@@ -335,7 +335,7 @@ app.post('/api/line/webhook', async (req, res) => {
                     type: 'text',
                     text: 'ยกเลิกสำเร็จ รายการนี้ถูกนำออกแล้ว',
                     size: 'sm',
-                    color: '#555555',
+                    color: '#333333',
                     wrap: true
                   },
                   { type: 'separator', color: '#e8e8e0' },
@@ -345,7 +345,7 @@ app.post('/api/line/webhook', async (req, res) => {
                     color: '#1a1a18',
                     action: {
                       type: 'uri',
-                      label: '📊 เปิดแอป',
+                      label: 'เปิดแอป',
                       uri: 'https://liff.line.me/2010240368-w9rYgLNk'
                     }
                   }
@@ -423,7 +423,7 @@ app.post('/api/line/webhook', async (req, res) => {
                   text: summary,
                   wrap: true,
                   size: 'sm',
-                  color: '#555555'
+                  color: '#333333'
                 },
                 {
                   type: 'separator',
@@ -447,7 +447,7 @@ app.post('/api/line/webhook', async (req, res) => {
                   color: '#1a1a18',
                   action: {
                     type: 'uri',
-                    label: '📊 เปิดแอป',
+                    label: 'เปิดแอป',
                     uri: 'https://liff.line.me/2010240368-w9rYgLNk'
                   }
                 }
@@ -508,14 +508,14 @@ app.post('/api/line/webhook', async (req, res) => {
             type: 'text',
             text: `มิเตอร์ ${prev.meter_value} → ${record.meter_value}`,
             size: 'sm',
-            color: '#555555',
+            color: '#333333',
             wrap: true
           })
           bodyContents.push({
             type: 'text',
             text: `หน่วยที่ใช้ +${units.toFixed(2)} หน่วย = ${cost.toFixed(0)} บาท`,
             size: 'sm',
-            color: '#555555',
+            color: '#333333',
             wrap: true
           })
         } else {
@@ -523,7 +523,7 @@ app.post('/api/line/webhook', async (req, res) => {
             type: 'text',
             text: `มิเตอร์ ${record.meter_value} (รอบแรก)`,
             size: 'sm',
-            color: '#555555',
+            color: '#333333',
             wrap: true
           })
         }
