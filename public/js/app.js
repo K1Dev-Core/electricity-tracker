@@ -260,15 +260,39 @@ async function deleteRecord(id) {
   }
 }
 
+function daysBetween(a, b) {
+  return Math.abs((new Date(a).getTime() - new Date(b).getTime()) / (1000 * 60 * 60 * 24))
+}
+
 async function toggleBilling(id) {
   try {
+    const record = records.find(r => r.id === id)
+    if (!record) return showToast('ไม่พบรายการ')
+
+    const isTurningOn = !record.is_billing_start
+    if (isTurningOn) {
+      const otherStarts = records.filter(r => r.is_billing_start && r.id !== id)
+      const lastStart = otherStarts[otherStarts.length - 1]
+      if (lastStart) {
+        const diff = daysBetween(record.recorded_at, lastStart.recorded_at)
+        if (diff < 20) {
+          if (!confirm(`วันเริ่มรอบบิลเก่าอยู่ใกล้กันมาก (${diff.toFixed(0)} วัน)\n\nต้องการตั้งรายการนี้เป็นวันเริ่มรอบบิลใหม่ใช่ไหม?`)) return
+        } else if (diff < 25) {
+          if (!confirm(`วันเริ่มรอบบิลเก่าอยู่ห่างกันแค่ ${diff.toFixed(0)} วัน\n\nโดยปกติรอบบิลมักจะใกล้ประมาณ 20–25 วัน\nต้องการตั้งใหม่ใช่ไหม?`)) return
+        } else {
+          if (!confirm('จะตั้งรายการนี้เป็นวันเริ่มรอบบิลใช่ไหม?')) return
+        }
+      } else {
+        if (!confirm('จะตั้งรายการนี้เป็นวันแรกของรอบบิลใช่ไหม?')) return
+      }
+    }
+
     const h = { 'Content-Type': 'application/json' }
     if (lineUserId) h['x-line-user-id'] = lineUserId
     const res = await fetch('/api/records/' + id + '/billing', { method: 'PATCH', headers: h })
     if (!res.ok) throw new Error('เปลี่ยนไม่ได้')
     const data = await res.json()
-    const record = records.find(r => r.id === id)
-    if (record) record.is_billing_start = data.is_billing_start
+    record.is_billing_start = data.is_billing_start
     render()
     showToast(data.is_billing_start ? '📌 กำหนดเป็นวันเริ่มรอบบิล' : '○ ยกเลิกแล้ว')
   } catch (e) {
