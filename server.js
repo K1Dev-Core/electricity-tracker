@@ -212,7 +212,13 @@ const PREF_TABLE = process.env.SUPABASE_PREF_TABLE || 'user_preferences'
 async function ensurePrefs(userId) {
   let { data } = await supabase.from(PREF_TABLE).select('*').eq('user_id', userId).maybeSingle()
   if (!data) {
-    const { data: inserted } = await supabase.from(PREF_TABLE).insert({ user_id: userId, rate: 8 }).select().single()
+    const { data: inserted } = await supabase.from(PREF_TABLE).insert({
+      user_id: userId,
+      rate: 8,
+      reminder_enabled: true,
+      reminder_start_hour: 19,
+      reminder_end_hour: 24
+    }).select().single()
     data = inserted
   }
   return data

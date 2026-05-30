@@ -7,7 +7,7 @@ let heatmapMode = 'day'
 let lineProfile = null
 let lineUserId = null
 let lineReady = false
-let reminderEnabled = false
+let reminderEnabled = true
 let reminderStartHour = 19
 let reminderEndHour = 24
 
@@ -439,6 +439,32 @@ function animateCounter(elId, target, suffix = '') {
   requestAnimationFrame(tick)
 }
 
+function syncReminderChips() {
+  document.querySelectorAll('.time-chip').forEach(btn => {
+    const active = btn.dataset.start == reminderStartHour && btn.dataset.end == reminderEndHour
+    btn.classList.toggle('active', active)
+  })
+}
+
+window.pickReminderRange = function(btn) {
+  reminderStartHour = parseInt(btn.dataset.start, 10)
+  reminderEndHour = parseInt(btn.dataset.end, 10)
+  document.getElementById('reminderStartHour').value = reminderStartHour
+  document.getElementById('reminderEndHour').value = reminderEndHour
+  syncReminderChips()
+}
+
+window.testReminder = async function() {
+  try {
+    const h = lineUserId ? { 'x-line-user-id': lineUserId } : {}
+    const res = await fetch('/api/reminders/test', { method: 'POST', headers: h })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'ทดสอบไม่ได้')
+    showToast('ส่งทดสอบแจ้งเตือนแล้ว')
+  } catch (e) {
+    showToast(e.message)
+  }
+}
 
 async function loadPreferences() {
   try {
@@ -456,6 +482,7 @@ window.openSettings = async function() {
   document.getElementById('reminderEnabled').checked = reminderEnabled
   document.getElementById('reminderStartHour').value = reminderStartHour
   document.getElementById('reminderEndHour').value = reminderEndHour
+  syncReminderChips()
   document.getElementById('settingsModal').classList.remove('hidden')
 }
 

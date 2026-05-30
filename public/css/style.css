@@ -238,6 +238,9 @@ td .btn-billing + .btn-del { margin-left: 2px; }
 .confirm-foot { display:flex; gap:10px; }
 .btn-secondary { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:40px; padding:0 18px; background: var(--line-2); color: var(--ink); border:none; border-radius: var(--r-sm); cursor:pointer; }
 .confirm-foot .btn-primary, .confirm-foot .btn-secondary { flex:1; }
+.time-chip-row { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
+.time-chip { height:38px; border:1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink-3); font-size:12px; cursor:pointer; }
+.time-chip.active { background: var(--ink); color:#fff; border-color: var(--ink); }
 .skeleton-card { padding: 1rem 1.25rem; }
 .skeleton-card.hidden { display: none; }
 .skeleton-insight { margin-bottom: 1rem; }
