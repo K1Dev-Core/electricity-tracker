@@ -107,8 +107,7 @@ async function initLiff() {
     }
     await liff.init({ liffId: cfg.liffId })
     if (!liff.isLoggedIn()) {
-      showOverlay()
-      return
+      try { await liff.login(); return } catch (_) { showOverlay(); return }
     }
     renderLineLoginState(true)
     lineProfile = await liff.getProfile()
@@ -720,14 +719,12 @@ window.quickLatestSend = quickLatestSend
 window.onSubmitQuickMeter = onSubmitQuickMeter
 window.shareLatest = shareLatest
 window.liffLogin = async () => {
-  if (typeof liff !== 'undefined' && liff.isReady) {
-    try { await liff.login(); location.reload() } catch (e) { showLiffToast('Login ไม่ได้') }
-  }
+  if (typeof liff === 'undefined') return showLiffToast('LINE ยังไม่พร้อม')
+  try { await liff.login(); location.reload() } catch (e) { showLiffToast('Login ไม่ได้') }
 }
 window.liffLogout = async () => {
-  if (typeof liff !== 'undefined' && liff.isReady) {
-    try { liff.logout(); location.reload() } catch (e) { showLiffToast('Logout ไม่ได้') }
-  }
+  if (typeof liff === 'undefined') return showLiffToast('LINE ยังไม่พร้อม')
+  try { liff.logout(); location.reload() } catch (e) { showLiffToast('Logout ไม่ได้') }
 }
 
 initPage()

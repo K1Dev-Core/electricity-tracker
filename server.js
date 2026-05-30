@@ -195,6 +195,47 @@ app.delete('/api/records/:id', async (req, res) => {
   }
 })
 
+// — Preferences API —
+const PREF_TABLE = process.env.SUPABASE_PREF_TABLE || 'user_preferences'
+
+async function getUserRate(userId) {
+  if (!userId) return 8
+  const { data } = await supabase.from(PREF_TABLE).select('rate').eq('user_id', userId).maybeSingle()
+  return data ? parseFloat(data.rate) : 8
+}
+
+app.get('/api/preferences', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    if (!userId) return res.json({ rate: 8 })
+    let { data } = await supabase.from(PREF_TABLE).select('rate').eq('user_id', userId).maybeSingle()
+    if (!data) {
+      const { data: inserted } = await supabase.from(PREF_TABLE).insert({ user_id: userId, rate: 8 }).select().single()
+      data = inserted
+    }
+    res.json({ rate: data ? parseFloat(data.rate) : 8 })
+  } catch (error) {
+    res.json({ rate: 8 })
+  }
+})
+
+app.put('/api/preferences', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    if (!userId) return res.status(400).json({ error: 'missing user id' })
+    const rate = parseFloat(req.body?.rate ?? 8)
+    if (rate <= 0) return res.status(400).json({ error: 'rate must be > 0' })
+    const { data, error } = await supabase.from(PREF_TABLE).upsert(
+      { user_id: userId, rate, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    ).select().single()
+    if (error) throw error
+    res.json({ rate: parseFloat(data.rate) })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // — Toggle billing cycle start flag —
 app.patch('/api/records/:id/billing', async (req, res) => {
   try {

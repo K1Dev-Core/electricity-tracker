@@ -55,7 +55,7 @@ body { font-family: var(--font-body); background: var(--bg); color: var(--ink); 
   max-height: 300px;
   opacity: 1;
 }
-.form-body { padding: 1.25rem; display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; align-items:end; }
+.form-body { padding: 1.25rem; display:grid; grid-template-columns: 1.5fr 1fr auto; gap:10px; align-items:end; }
 .field { display:flex; flex-direction:column; gap:5px; }
 .field label { font-size:11px; font-weight:600; color: var(--ink-3); text-transform:uppercase; }
 .field input { height:40px; padding:0 12px; border:1px solid var(--line); border-radius: var(--r-sm); background: var(--bg); font: inherit; }
@@ -126,12 +126,11 @@ td .btn-billing + .btn-del { margin-left: 2px; }
   .main { max-width: 100%; }
   .insight-grid { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 720px) {
+@media (max-width: 580px) {
   .form-body { grid-template-columns: 1fr; }
   .btn-primary { width:100%; justify-content:center; }
   .heatmap-grid { grid-template-columns: repeat(auto-fill, minmax(32px,1fr)); }
   .insight-grid { grid-template-columns: 1fr; }
-  .rich-menu { grid-template-columns: 1fr; }
 }
 @media (max-width: 400px) {
   .main { padding: .75rem .5rem 2.5rem; }
