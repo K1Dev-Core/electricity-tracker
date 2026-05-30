@@ -305,21 +305,66 @@ function getHeatClass(v, max) {
   return 's4'
 }
 
+function showLoading() {
+  document.querySelectorAll('.skeleton-card').forEach(el => el.classList.remove('hidden'))
+  document.querySelectorAll('.skeleton-shimmer').forEach(el => el.classList.remove('hidden'))
+  document.getElementById('mainContent')?.classList.add('hidden')
+}
+
+function hideLoading() {
+  document.querySelectorAll('.skeleton-card').forEach(el => el.classList.add('hidden'))
+  document.querySelectorAll('.skeleton-shimmer').forEach(el => el.classList.add('hidden'))
+  document.getElementById('mainContent')?.classList.remove('hidden')
+}
+
+function animateCounter(elId, target, suffix = '') {
+  const el = document.getElementById(elId)
+  if (!el) return
+  const start = 0
+  const duration = 800
+  const step = 16
+  const totalSteps = duration / step
+  const increment = target / totalSteps
+  let current = 0
+  let frame = 0
+
+  const tick = () => {
+    frame++
+    current = Math.min(current + increment, target)
+    el.textContent = fmtNum(Math.round(current)) + suffix
+    if (frame < totalSteps && current < target) {
+      requestAnimationFrame(tick)
+    } else {
+      el.textContent = fmtNum(target) + suffix
+    }
+  }
+  requestAnimationFrame(tick)
+}
+
 function render() {
+  hideLoading()
   const usage = getUsage()
   const withData = usage.filter(r => r.units > 0)
   const last = withData[withData.length - 1]
-  setEl('lastUnit', last ? fmtNum(last.units) : '—')
-  setEl('lastCost', last ? fmtNum(last.cost) : '—')
+
   const now = new Date()
   const monthData = usage.filter(r => {
     const d = new Date(r.recorded_at)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
   const mU = monthData.reduce((s, r) => s + r.units, 0)
-  setEl('monthUnit', mU > 0 ? fmtNum(mU) : '—')
-  setEl('monthCost', mU > 0 ? fmtNum(mU * RATE) : '—')
   setEl('countBadge', records.length > 0 ? records.length + ' รายการ' : '')
+
+  // Animated counters
+  if (last) animateCounter('lastUnit', last.units)
+  else setEl('lastUnit', '—')
+  if (last) animateCounter('lastCost', last.cost)
+  else setEl('lastCost', '—')
+  if (mU > 0) animateCounter('monthUnit', mU)
+  else setEl('monthUnit', '—')
+  if (mU > 0) animateCounter('monthCost', mU * RATE)
+  else setEl('monthCost', '—')
+
   updateAlerts(usage)
   renderTable(usage)
   renderChart(withData)
@@ -585,23 +630,34 @@ let cancelBtn = null
 let latestBtn = null
 
 async function fetchRecords() {
+  showLoading()
   const empty = document.getElementById('emptyMsg')
   if (empty) empty.classList.remove('show')
-  const headers = lineUserId ? { 'x-line-user-id': lineUserId } : {}
-  const res = await fetch('/api/records', { headers })
-  if (!res.ok) throw new Error(await res.text())
-  records = await res.json()
-  autoFillInputMeter()
-  render()
+  try {
+    const headers = lineUserId ? { 'x-line-user-id': lineUserId } : {}
+    const res = await fetch('/api/records', { headers })
+    if (!res.ok) throw new Error(await res.text())
+    records = await res.json()
+    autoFillInputMeter()
+    render()
+  } catch (e) {
+    hideLoading()
+    showToast('โหลดข้อมูลไม่ได้: ' + e.message)
+    if (empty) empty.classList.add('show')
+  }
 }
 
 async function initPage() {
+  showLoading()
   saveBtn = document.getElementById('btnSave')
   cancelBtn = document.getElementById('btnCancelLast')
   latestBtn = document.getElementById('btnShowLatest')
   await initLiff().catch(() => showOverlay())
   if (!lineUserId) {
-    await fetchRecords().catch(e => showToast('โหลดข้อมูลไม่ได้: ' + e.message))
+    await fetchRecords().catch(e => {
+      hideLoading()
+      showToast('โหลดข้อมูลไม่ได้: ' + e.message)
+    })
   }
 }
 

@@ -426,7 +426,7 @@ app.post('/api/line/webhook', async (req, res) => {
               color: '#c0392b',
               action: {
                 type: 'postback',
-                label: '🗑️ ลบรายการนี้',
+                label: '1a1a18',
                 data: `delete_record:${record.id}`
               }
             },
@@ -436,7 +436,7 @@ app.post('/api/line/webhook', async (req, res) => {
               color: '#1a1a18',
               action: {
                 type: 'uri',
-                label: '📊 เปิดแอป',
+                label: 'เปิดแอป',
                 uri: 'https://liff.line.me/2010240368-w9rYgLNk'
               }
             }

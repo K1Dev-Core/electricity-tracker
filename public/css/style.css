@@ -173,35 +173,38 @@ td.note-cell { color: var(--ink-3); font-size:12px; white-space: nowrap; overflo
 .btn-line:hover { opacity: 0.9; }
 .line-overlay-hint { font-size: 11px !important; margin-top: 0.75rem !important; }
 
-/* ─── Command Help ──────────────────────────────────── */
-.command-help {
-  margin: 0 0 1rem;
-}
-.command-title {
-  font-size: 11px;
-  color: rgba(255,255,255,0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+/* ─── Skeleton Loading ──────────────────────────── */
+.skeleton-card { padding: 1rem 1.25rem; }
+.skeleton-card.hidden { display: none; }
+.skeleton-insight { margin-bottom: 1rem; }
+.skeleton-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.skeleton-box { background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 14px; }
+.skeleton-line {
+  height: 10px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--line-2) 25%, var(--line) 37%, var(--line-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.3s ease infinite;
   margin-bottom: 8px;
 }
-.command-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.skeleton-line:last-child { margin-bottom: 0; }
+.skeleton-line.w-40 { width: 40%; }
+.skeleton-line.w-50 { width: 50%; }
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-70 { width: 70%; }
+.skeleton-line.w-80 { width: 80%; }
+.skeleton-line.w-30 { width: 30%; }
+.skeleton-line.h-lg { height: 22px; }
+.skeleton-line.h-xl { height: 28px; }
+
+@media (max-width: 700px) {
+  .skeleton-grid-4 { grid-template-columns: 1fr 1fr; }
 }
-.command-items span {
-  font-size: 11px;
-  color: rgba(255,255,255,0.6);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  padding: 4px 8px;
-  white-space: nowrap;
+@media (max-width: 400px) {
+  .skeleton-grid-4 { grid-template-columns: 1fr; }
 }
-.command-items code {
-  font-family: var(--font-mono);
-  background: rgba(255,255,255,0.1);
-  padding: 1px 5px;
-  border-radius: 4px;
-  margin-right: 4px;
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }

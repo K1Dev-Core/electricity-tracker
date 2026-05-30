@@ -65,6 +65,24 @@
         </button>
       </div>
     </section>
+    
+    <!-- ── Skeleton loading ── -->
+    <div class="skeleton-card hidden" id="skeletonCard">
+      <div class="skeleton-insight">
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-70 h-xl"></div>
+        <div class="skeleton-line w-30"></div>
+      </div>
+      <div class="skeleton-grid-4">
+        <div class="skeleton-box"><div class="skeleton-line w-60"></div><div class="skeleton-line w-80 h-lg"></div></div>
+        <div class="skeleton-box"><div class="skeleton-line w-60"></div><div class="skeleton-line w-50 h-lg"></div></div>
+        <div class="skeleton-box"><div class="skeleton-line w-60"></div><div class="skeleton-line w-50 h-lg"></div></div>
+        <div class="skeleton-box"><div class="skeleton-line w-60"></div><div class="skeleton-line w-70 h-lg"></div></div>
+      </div>
+    </div>
+    
+    <div id="mainContent"><!-- main content wrapper for loading toggle -->
+
     <section class="card insights-card">
       <div class="card-head">
         <i class="ti ti-activity" aria-hidden="true"></i>
@@ -159,6 +177,7 @@
     </section>
   </main>
 </div>
+<!-- /mainContent -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="liff-toast" id="liffToast" aria-live="polite"></div>
 
