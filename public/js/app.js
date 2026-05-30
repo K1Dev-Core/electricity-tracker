@@ -69,19 +69,28 @@ async function fetchConfig() {
 
 async function initLiff() {
   await fetchConfig()
-  if (typeof liff === 'undefined') {
-    renderFallbackMode()
+  
+  // — รอ LIFF SDK โหลด —
+  let liffLoaded = false
+  for (let i = 0; i < 20; i++) {
+    if (typeof liff !== 'undefined') { liffLoaded = true; break }
+    await new Promise(r => setTimeout(r, 250))
+  }
+
+  if (!liffLoaded) {
+    showOverlay()
     return
   }
+
   try {
     const cfg = await (await fetch('/api/config')).json()
     if (!cfg.liffId) {
-      renderFallbackMode()
+      showOverlay()
       return
     }
     await liff.init({ liffId: cfg.liffId })
     if (!liff.isLoggedIn()) {
-      renderLineLoginState(false)
+      showOverlay()
       return
     }
     renderLineLoginState(true)
@@ -90,23 +99,14 @@ async function initLiff() {
     await syncLineProfile()
     await fetchRecords()
   } catch (e) {
-    renderFallbackMode()
+    showOverlay()
     console.warn('LIFF init error:', e)
   }
 }
 
-function renderFallbackMode() {
-  const badge = document.getElementById('liffStatusBadge')
-  if (badge) badge.textContent = 'Standalone mode'
-  showLiffRedirect()
-}
-
-function showLiffRedirect() {
+function showOverlay() {
   const overlay = document.getElementById('lineOverlay')
-  if (!overlay) return
-  overlay.classList.remove('hidden')
-}
-  }, 4000)
+  if (overlay) overlay.classList.remove('hidden')
 }
 
 function renderLineLoginState(isLoggedIn) {
@@ -599,7 +599,7 @@ async function initPage() {
   saveBtn = document.getElementById('btnSave')
   cancelBtn = document.getElementById('btnCancelLast')
   latestBtn = document.getElementById('btnShowLatest')
-  await initLiff().catch(() => renderFallbackMode())
+  await initLiff().catch(() => showOverlay())
   if (!lineUserId) {
     await fetchRecords().catch(e => showToast('โหลดข้อมูลไม่ได้: ' + e.message))
   }
