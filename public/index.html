@@ -74,6 +74,40 @@
       </div>
     </section>
 
+    <!-- Insights -->
+    <section class="card insights-card">
+      <div class="card-head">
+        <i class="ti ti-activity" aria-hidden="true"></i>
+        <h2>สรุปแนวโน้มการใช้ไฟ</h2>
+        <div class="insight-badges">
+          <span class="mini-badge" id="dayAlertBadge">รอข้อมูล</span>
+          <span class="mini-badge" id="weekAlertBadge">รอข้อมูล</span>
+        </div>
+      </div>
+      <div class="insight-grid">
+        <div class="insight-box">
+          <span class="insight-label">ค่าเฉลี่ยต่อวัน</span>
+          <strong class="insight-value" id="avgDayUnit">—</strong>
+          <span class="insight-sub">หน่วย</span>
+        </div>
+        <div class="insight-box">
+          <span class="insight-label">วันใช้สูงสุด</span>
+          <strong class="insight-value" id="peakDayUnit">—</strong>
+          <span class="insight-sub" id="peakDayLabel">—</span>
+        </div>
+        <div class="insight-box">
+          <span class="insight-label">วันใช้ต่ำสุด</span>
+          <strong class="insight-value" id="lowDayUnit">—</strong>
+          <span class="insight-sub" id="lowDayLabel">—</span>
+        </div>
+        <div class="insight-box">
+          <span class="insight-label">เทียบเดือนก่อน</span>
+          <strong class="insight-value" id="monthCompareValue">—</strong>
+          <span class="insight-sub" id="monthCompareLabel">—</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Chart -->
     <section class="card chart-card">
       <div class="card-head">
@@ -95,16 +129,20 @@
       <div class="card-head">
         <i class="ti ti-grid-dots" aria-hidden="true"></i>
         <h2>Heatmap รายวัน</h2>
-        <span class="heatmap-legend">
-          <span>น้อย</span>
-          <span class="swatch s1"></span>
-          <span class="swatch s2"></span>
-          <span class="swatch s3"></span>
-          <span class="swatch s4"></span>
-          <span>มาก</span>
-        </span>
+        <div class="tab-group" role="tablist">
+          <button class="tab active" role="tab" onclick="switchHeatmap('day',this)">รายวัน</button>
+          <button class="tab" role="tab" onclick="switchHeatmap('month',this)">รายเดือน</button>
+          <button class="tab" role="tab" onclick="switchHeatmap('year',this)">รายปี</button>
+        </div>
       </div>
-      <div class="heatmap-wrap" id="heatmapWrap"></div>
+      <div class="heatmap-wrap">
+        <div class="skeleton-grid" id="heatmapSkeleton"></div>
+        <div class="heatmap-empty hidden" id="heatmapEmpty">ยังไม่มีข้อมูลสำหรับ heatmap</div>
+        <div class="heatmap-legend">
+          <span>น้อย</span><div class="legend-scale"><i></i><i></i><i></i><i></i><i></i></div><span>มาก</span>
+        </div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+      </div>
     </section>
 
     <!-- History -->

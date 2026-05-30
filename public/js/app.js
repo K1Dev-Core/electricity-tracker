@@ -137,21 +137,47 @@ function autoFillInputMeter() {
   meterEl.placeholder = `เดาไว้ก่อน: ${meterEl.value}`
 }
 
-function getHeatmapData(usage) {
+function getHeatmapData(usage, mode = 'day') {
   if (!records.length) return []
-  const map = new Map()
-  const first = new Date(records[0].recorded_at)
-  const last = new Date(records[records.length - 1].recorded_at)
-  const cursor = new Date(first.getFullYear(), first.getMonth(), first.getDate())
-  const end = new Date(last.getFullYear(), last.getMonth(), last.getDate())
   const dayMap = new Map(usage.map(r => [new Date(r.recorded_at).toDateString(), r.units]))
+  const out = []
 
-  while (cursor <= end) {
+  if (mode === 'year') {
+    const monthMap = new Map()
+    usage.forEach(r => {
+      const d = new Date(r.recorded_at)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      monthMap.set(key, (monthMap.get(key) || 0) + r.units)
+    })
+    const keys = [...monthMap.keys()].sort()
+    keys.forEach(key => out.push({ key, units: monthMap.get(key) || 0 }))
+    return out
+  }
+
+  if (mode === 'month') {
+    const ref = new Date(records[records.length - 1].recorded_at)
+    const year = ref.getFullYear()
+    const month = ref.getMonth()
+    const cursor = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 0)
+
+    while (cursor <= end) {
+      const key = cursor.toDateString()
+      out.push({ key, units: dayMap.get(key) || 0 })
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return out
+  }
+
+  const ref = new Date(records[records.length - 1].recorded_at)
+  const cursor = new Date(ref)
+  cursor.setDate(ref.getDate() - 27)
+  for (let i = 0; i < 28; i++) {
     const key = cursor.toDateString()
-    map.set(key, dayMap.get(key) || 0)
+    out.push({ key, units: dayMap.get(key) || 0 })
     cursor.setDate(cursor.getDate() + 1)
   }
-  return [...map.entries()].map(([key, units]) => ({ key, units }))
+  return out
 }
 
 function getHeatClass(v, max) {
@@ -348,14 +374,17 @@ function renderChart(usageData) {
   })
 }
 
-function renderHeatmap(usageData) {
+function renderHeatmap(usageData, mode = 'month') {
   const grid = document.getElementById('heatmapGrid')
   const skeleton = document.getElementById('heatmapSkeleton')
   const empty = document.getElementById('heatmapEmpty')
   if (!grid || !skeleton || !empty) return
 
   grid.innerHTML = ''
-  const days = getHeatmapData(usageData)
+  skeleton.classList.remove('hidden')
+  empty.classList.add('hidden')
+
+  const days = getHeatmapData(usageData, mode)
   if (!days.length) {
     skeleton.classList.add('hidden')
     empty.classList.remove('hidden')
@@ -363,28 +392,18 @@ function renderHeatmap(usageData) {
   }
 
   skeleton.classList.add('hidden')
-  empty.classList.add('hidden')
 
   const max = Math.max(...days.map(d => d.units), 0)
-  const monthMap = new Map()
-  days.forEach(d => monthMap.set(d.key, d.units))
-
-  const start = new Date(days[0].key)
-  start.setDate(1)
-  const end = new Date(days[days.length - 1].key)
-  const cursor = new Date(start)
-
-  while (cursor <= end) {
-    const key = cursor.toDateString()
-    const units = monthMap.get(key) || 0
+  days.forEach(d => {
     const cell = document.createElement('button')
     cell.type = 'button'
-    cell.className = `heat-cell ${getHeatClass(units, max)}`
-    cell.title = `${cursor.toLocaleDateString('th-TH')} · ${fmtNum(units)} หน่วย`
-    cell.innerHTML = `<span>${cursor.getDate()}</span>`
+    cell.className = `heat-cell ${getHeatClass(d.units, max)}`
+    cell.title = mode === 'year'
+      ? `${d.key} · ${fmtNum(d.units)} หน่วย`
+      : `${new Date(d.key).toLocaleDateString('th-TH')} · ${fmtNum(d.units)} หน่วย`
+    cell.innerHTML = `<span>${mode === 'year' ? d.key.slice(-2) : new Date(d.key).getDate()}</span>`
     grid.appendChild(cell)
-    cursor.setDate(cursor.getDate() + 1)
-  }
+  })
 }
 
 function updateAlerts(usage) {
@@ -393,15 +412,19 @@ function updateAlerts(usage) {
   const today = new Date().toDateString()
   const todayUnits = usage.find(r => new Date(r.recorded_at).toDateString() === today)?.units || 0
   const weekUnits = getLastDaysUnits(usage, 7)
-  const dayAvg = avgUnits(usage, 7)
-  const weekAvg = avgUnits(usage, 30)
+  const avgDay = avgUnits(usage, 7)
 
-  setEl('todayUnit', todayUnits > 0 ? fmtNum(todayUnits) : '—')
-  setEl('weekUnit', fmtNum(weekUnits))
-  setEl('avgDayUnit', dayAvg > 0 ? fmtNum(dayAvg) : '—')
+  const trend = buildTrendSummary(usage)
+  setEl('avgDayUnit', trend.avgDay > 0 ? fmtNum(trend.avgDay) : '—')
+  setEl('peakDayUnit', trend.peak ? fmtNum(trend.peak.units) : '—')
+  setEl('peakDayLabel', trend.peak ? trend.peak.label : '—')
+  setEl('lowDayUnit', trend.low ? fmtNum(trend.low.units) : '—')
+  setEl('lowDayLabel', trend.low ? trend.low.label : '—')
+  setEl('monthCompareValue', trend.monthCompareValue)
+  setEl('monthCompareLabel', trend.monthCompareLabel)
 
-  applyAlert(dayBadge, todayUnits, dayAvg, 'วันนี้')
-  applyAlert(weekBadge, weekUnits, weekAvg, 'สัปดาห์นี้')
+  applyAlert(dayBadge, todayUnits, avgDay, 'วันนี้')
+  applyAlert(weekBadge, weekUnits, avgUnits(usage, 30), 'สัปดาห์นี้')
 }
 
 function applyAlert(el, current, avg, label) {
@@ -441,6 +464,45 @@ function avgUnits(usage, days) {
   return getLastDaysUnits(usage, days) / days
 }
 
+function buildTrendSummary(usage) {
+  const daily = new Map()
+  usage.forEach(r => {
+    const k = new Date(r.recorded_at).toDateString()
+    daily.set(k, (daily.get(k) || 0) + r.units)
+  })
+  const items = [...daily.entries()].map(([k, units]) => ({
+    key: k,
+    units,
+    label: new Date(k).toLocaleDateString('th-TH', { day: '2-digit', month: 'short' })
+  }))
+  const valid = items.filter(x => x.units > 0)
+  const avgDay = valid.length ? valid.reduce((s, x) => s + x.units, 0) / valid.length : 0
+  const peak = valid.reduce((best, cur) => (!best || cur.units > best.units ? cur : best), null)
+  const low = valid.reduce((best, cur) => (!best || cur.units < best.units ? cur : best), null)
+
+  const now = new Date()
+  const thisMonth = usage.filter(r => {
+    const d = new Date(r.recorded_at)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).reduce((s, r) => s + r.units, 0)
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonth = usage.filter(r => {
+    const d = new Date(r.recorded_at)
+    return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear()
+  }).reduce((s, r) => s + r.units, 0)
+  const diff = thisMonth - lastMonth
+  const pct = lastMonth > 0 ? (diff / lastMonth) * 100 : 0
+  const sign = diff >= 0 ? '+' : ''
+
+  return {
+    avgDay,
+    peak,
+    low,
+    monthCompareValue: lastMonth === 0 ? '—' : `${sign}${fmtNum(diff)} หน่วย (${sign}${fmtNum(pct)}%)`,
+    monthCompareLabel: lastMonth === 0 ? 'ยังไม่มีข้อมูลเดือนก่อน' : `เดือนก่อน ${fmtNum(lastMonth)} หน่วย`
+  }
+}
+
 // Enter key
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.activeElement.id !== 'inputNote') {
@@ -448,16 +510,19 @@ document.addEventListener('keydown', e => {
   }
 })
 
+let heatmapMode = 'month'
+
 const inputMeter = document.getElementById('inputMeter')
 if (inputMeter) {
   inputMeter.placeholder = 'เดาไว้ก่อน...'
 }
 
 function switchHeatmap(mode, el) {
+  heatmapMode = mode
   document.querySelectorAll('.heatmap-card .tab').forEach(t => t.classList.remove('active'))
   el.classList.add('active')
   const usage = getUsage().filter(r => r.units > 0)
-  renderHeatmap(usage, mode)
+  renderHeatmap(usage, heatmapMode)
 }
 
 fetchRecords()

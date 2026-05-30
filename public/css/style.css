@@ -222,6 +222,9 @@ body {
 .btn-primary .ti { font-size: 15px; }
 
 /* ─── Chart / Insights / Heatmap ───────────────────────── */
+.heatmap-card {
+  overflow: hidden;
+}
 .tab-group {
   display: flex;
   border: 1px solid var(--line);
@@ -247,7 +250,7 @@ body {
 .insight-grid {
   padding: 1rem 1.25rem 1.25rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 .insight-box {
@@ -272,7 +275,7 @@ body {
 .mini-badge.warn { background: #fff3d6; color: #9a6b00; }
 .mini-badge.danger { background: #fde8e6; color: var(--danger); }
 
-.heatmap-card { overflow: visible; }
+.heatmap-card { overflow: hidden; }
 .heatmap-wrap { padding: 1rem 1.25rem 1.25rem; }
 .heatmap-legend {
   display: flex;
@@ -512,6 +515,7 @@ td.note-cell {
   .chart-wrap { padding: 1rem; height: 220px; }
   .heatmap-wrap { padding: 0.875rem 1rem 1rem; }
   .heatmap-grid { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); }
+  .insight-grid { grid-template-columns: 1fr 1fr; }
 
   thead th:nth-child(2),
   tbody td:nth-child(2) { display: none; }
@@ -523,4 +527,5 @@ td.note-cell {
   .stat-value { font-size: 18px; }
   .main { padding: 0.75rem 0.5rem 2.5rem; }
   .heatmap-grid { grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); }
+  .insight-grid { grid-template-columns: 1fr; }
 }
