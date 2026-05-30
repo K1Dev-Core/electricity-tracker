@@ -281,8 +281,22 @@ app.post('/api/line/webhook', async (req, res) => {
         const recordId = parseInt(match[1], 10)
         console.log('[WEBHOOK] postback delete record:', recordId)
         try {
-          const deleted = await deleteRecordById(recordId, userId)
+          // เช็คก่อนว่ายังมี record อยู่ไหม
+          const { data: existing } = await supabase.from(READING_TABLE).select('id').eq('id', recordId).maybeSingle()
+          
+          if (!existing) {
+            // ถ้าลบไปแล้ว → บอกว่าไม่มีแล้ว
+            await lineClient.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '⛔ รายการนี้ถูกลบไปก่อนหน้านี้แล้ว'
+            })
+            return
+          }
+          
+          await deleteRecordById(recordId, userId)
           await lineClient.replyMessage(event.replyToken, {
+            type: 'flex',
+            altText: '🗑️ ลบรายการแล้ว',
             type: 'flex',
             altText: '🗑️ ลบรายการแล้ว',
             contents: {
