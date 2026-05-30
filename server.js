@@ -283,8 +283,45 @@ app.post('/api/line/webhook', async (req, res) => {
         try {
           const deleted = await deleteRecordById(recordId, userId)
           await lineClient.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '🗑️ ลบรายการแล้ว'
+            type: 'flex',
+            altText: '🗑️ ลบรายการแล้ว',
+            contents: {
+              type: 'bubble',
+              size: 'giga',
+              body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                contents: [
+                  {
+                    type: 'text',
+                    text: '🗑️ ลบรายการแล้ว',
+                    weight: 'bold',
+                    size: 'lg',
+                    color: '#c0392b'
+                  },
+                  { type: 'separator', color: '#e8e8e0' },
+                  {
+                    type: 'text',
+                    text: 'ยกเลิกสำเร็จ รายการนี้ถูกนำออกแล้ว',
+                    size: 'sm',
+                    color: '#555555',
+                    wrap: true
+                  },
+                  { type: 'separator', color: '#e8e8e0' },
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#1a1a18',
+                    action: {
+                      type: 'uri',
+                      label: '📊 เปิดแอป',
+                      uri: 'https://liff.line.me/2010240368-w9rYgLNk'
+                    }
+                  }
+                ]
+              }
+            }
           })
         } catch (e) {
           console.error('[WEBHOOK] delete failed:', e)
