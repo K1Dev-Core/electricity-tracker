@@ -198,12 +198,8 @@ app.delete('/api/records/:id', async (req, res) => {
 // — Toggle billing cycle start flag —
 app.patch('/api/records/:id/billing', async (req, res) => {
   try {
-    const userId = getUserId(req)
     const { id } = req.params
-    // Get current state
-    let query = supabase.from(READING_TABLE).select('is_billing_start').eq('id', id)
-    if (userId) query = query.eq('user_id', userId)
-    const { data, error: getErr } = await query.single()
+    const { data, error: getErr } = await supabase.from(READING_TABLE).select('is_billing_start').eq('id', id).single()
     if (getErr) return res.status(404).json({ error: 'not found' })
     const newVal = !data.is_billing_start
     const { error: updErr } = await supabase.from(READING_TABLE).update({ is_billing_start: newVal }).eq('id', id)
