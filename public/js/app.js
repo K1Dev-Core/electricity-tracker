@@ -45,6 +45,13 @@ window.toggleInsights = function() {
 }
 
 function showLiffToast(msg) {
+  const t = document.getElementById('liffToast')
+  if (!t) return
+  t.textContent = msg
+  t.classList.add('show')
+  clearTimeout(t._tid)
+  t._tid = setTimeout(() => t.classList.remove('show'), 2400)
+}
 
 function fmtNum(n) {
   return (+n).toLocaleString('th-TH', { maximumFractionDigits: 2 })
@@ -332,14 +339,12 @@ function getHeatClass(v, max) {
 }
 
 function showLoading() {
-  document.querySelectorAll('.skeleton-card').forEach(el => el.classList.remove('hidden'))
-  document.querySelectorAll('.skeleton-shimmer').forEach(el => el.classList.remove('hidden'))
+  document.getElementById('skeletonCard')?.classList.remove('hidden')
   document.getElementById('mainContent')?.classList.add('hidden')
 }
 
 function hideLoading() {
-  document.querySelectorAll('.skeleton-card').forEach(el => el.classList.add('hidden'))
-  document.querySelectorAll('.skeleton-shimmer').forEach(el => el.classList.add('hidden'))
+  document.getElementById('skeletonCard')?.classList.add('hidden')
   document.getElementById('mainContent')?.classList.remove('hidden')
 }
 
