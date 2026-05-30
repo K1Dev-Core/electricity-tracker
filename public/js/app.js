@@ -73,24 +73,25 @@ async function initLiff() {
     renderFallbackMode()
     return
   }
-  const cfg = await (await fetch('/api/config')).json()
-  if (!cfg.liffId) {
-    renderFallbackMode()
-    return
-  }
-  await liff.init({ liffId: cfg.liffId })
-  if (!liff.isLoggedIn()) {
-    renderLineLoginState(false)
-    return
-  }
-  renderLineLoginState(true)
   try {
+    const cfg = await (await fetch('/api/config')).json()
+    if (!cfg.liffId) {
+      renderFallbackMode()
+      return
+    }
+    await liff.init({ liffId: cfg.liffId })
+    if (!liff.isLoggedIn()) {
+      renderLineLoginState(false)
+      return
+    }
+    renderLineLoginState(true)
     lineProfile = await liff.getProfile()
     lineUserId = lineProfile.userId
     await syncLineProfile()
     await fetchRecords()
   } catch (e) {
-    showLiffToast('ดึงโปรไฟล์ LINE ไม่ได้')
+    renderFallbackMode()
+    console.warn('LIFF init error:', e)
   }
 }
 
@@ -139,15 +140,17 @@ async function shareLatest() {
   try {
     const data = await lineAction('latest')
     const txt = data.summary || 'ยังไม่มีข้อมูล'
-    if (typeof liff !== 'undefined' && liff.isApiAvailable('shareTargetPicker')) {
-      await liff.shareTargetPicker([{ type: 'text', text: txt }])
-      showLiffToast('ส่งสรุปแล้ว')
-      return
-    }
-    if (typeof liff !== 'undefined' && liff.isApiAvailable('sendMessages')) {
-      await liff.sendMessages([{ type: 'text', text: txt }])
-      showLiffToast('ส่งสรุปแล้ว')
-      return
+    if (typeof liff !== 'undefined' && liff.isReady) {
+      if (liff.isApiAvailable('shareTargetPicker')) {
+        await liff.shareTargetPicker([{ type: 'text', text: txt }])
+        showLiffToast('ส่งสรุปแล้ว')
+        return
+      }
+      if (liff.isApiAvailable('sendMessages')) {
+        await liff.sendMessages([{ type: 'text', text: txt }])
+        showLiffToast('ส่งสรุปแล้ว')
+        return
+      }
     }
     showLiffToast(txt)
   } catch (e) {
@@ -520,8 +523,12 @@ function switchHeatmap(mode, el) {
 
 async function sendLiffMessage(text) {
   if (typeof liff === 'undefined') return
-  if (liff.isApiAvailable('sendMessages')) {
-    await liff.sendMessages([{ type: 'text', text }])
+  try {
+    if (liff.isApiAvailable('sendMessages')) {
+      await liff.sendMessages([{ type: 'text', text }])
+    }
+  } catch (e) {
+    console.warn('sendMessages error:', e)
   }
 }
 
@@ -598,7 +605,15 @@ window.quickCancelSend = quickCancelSend
 window.quickLatestSend = quickLatestSend
 window.onSubmitQuickMeter = onSubmitQuickMeter
 window.shareLatest = shareLatest
-window.liffLogin = async () => { if (typeof liff !== 'undefined') { await liff.login(); location.reload() } }
-window.liffLogout = async () => { if (typeof liff !== 'undefined') { liff.logout(); location.reload() } }
+window.liffLogin = async () => {
+  if (typeof liff !== 'undefined' && liff.isReady) {
+    try { await liff.login(); location.reload() } catch (e) { showLiffToast('Login ไม่ได้') }
+  }
+}
+window.liffLogout = async () => {
+  if (typeof liff !== 'undefined' && liff.isReady) {
+    try { liff.logout(); location.reload() } catch (e) { showLiffToast('Logout ไม่ได้') }
+  }
+}
 
 initPage()

@@ -21,6 +21,25 @@ CREATE TABLE IF NOT EXISTS meter_readings (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 
+-- เพิ่มคอลัมน์ source ถ้ายังไม่มี (สำหรับตารางเก่า)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'meter_readings' AND column_name = 'source'
+  ) THEN
+    ALTER TABLE meter_readings ADD COLUMN source text NOT NULL DEFAULT 'web';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'meter_readings' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE meter_readings ADD COLUMN user_id text;
+  END IF;
+END
+$$;
+
 CREATE INDEX IF NOT EXISTS idx_meter_readings_user_id ON meter_readings (user_id);
 CREATE INDEX IF NOT EXISTS idx_meter_readings_recorded_at ON meter_readings (recorded_at DESC);
 

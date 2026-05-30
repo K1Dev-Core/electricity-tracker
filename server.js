@@ -83,10 +83,11 @@ async function createRecord({ meter_value, note, user_id, source = 'web' }) {
   const payload = {
     meter_value: parseFloat(meter_value),
     note: note || null,
-    recorded_at: new Date().toISOString(),
-    user_id: user_id || null,
-    source
+    recorded_at: new Date().toISOString()
   }
+  if (user_id !== undefined) payload.user_id = user_id
+  if (source !== undefined) payload.source = source
+
   const { data, error } = await supabase.from(READING_TABLE).insert([payload]).select().single()
   if (error) throw error
   return data
