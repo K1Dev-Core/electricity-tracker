@@ -6,24 +6,57 @@
   <title>Meter Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
-
 <div class="layout">
-
-  <!-- Sidebar / Header -->
   <aside class="sidebar">
     <div class="brand">
       <i class="ti ti-bolt" aria-hidden="true"></i>
       <span>Meter Tracker</span>
     </div>
     <p class="brand-sub">8 บาท / หน่วย</p>
-
-    <!-- Stats -->
+    <div class="line-card">
+      <div class="line-top">
+        <span class="line-pill" id="liffStatusBadge">กำลังเชื่อมต่อ LINE</span>
+        <div class="line-actions">
+          <button class="ghost-btn" id="btnLineLogin" onclick="liffLogin()">Login</button>
+          <button class="ghost-btn hidden" id="btnLineLogout" onclick="liffLogout()">Logout</button>
+        </div>
+      </div>
+      <div class="line-user hidden" id="lineUserBox">
+        <img id="lineAvatar" alt="LINE avatar" class="line-avatar">
+        <div>
+          <div class="line-name" id="lineName">-</div>
+          <div class="line-id mono" id="lineId">-</div>
+        </div>
+      </div>
+      <div class="rich-menu">
+        <button class="rich-btn primary" onclick="onSubmitQuickMeter()">
+          <i class="ti ti-check"></i>
+          บันทึกเลขมิเตอร์
+        </button>
+        <button class="rich-btn" onclick="quickLatestSend()">
+          <i class="ti ti-eye"></i>
+          ดูผลล่าสุด
+        </button>
+        <button class="rich-btn danger" onclick="quickCancelSend()">
+          <i class="ti ti-rotate-2"></i>
+          ยกเลิกรายการล่าสุด
+        </button>
+        <button class="rich-btn" onclick="shareLatest()">
+          <i class="ti ti-send"></i>
+          ส่งสรุปกลับแชต
+        </button>
+      </div>
+      <div class="command-help">
+        พิมพ์ในแชตได้เลย: <code>8247</code> / <code>cancel</code> / <code>latest</code>
+      </div>
+    </div>
     <div class="stat-group">
       <div class="stat">
         <div class="stat-label">ครั้งล่าสุด</div>
@@ -47,11 +80,7 @@
       </div>
     </div>
   </aside>
-
-  <!-- Main content -->
   <main class="main">
-
-    <!-- Record Form -->
     <section class="card form-card">
       <div class="card-head">
         <i class="ti ti-pencil" aria-hidden="true"></i>
@@ -67,14 +96,12 @@
           <label for="inputNote">หมายเหตุ</label>
           <input type="text" id="inputNote" placeholder="ไม่บังคับ" autocomplete="off">
         </div>
-        <button class="btn-primary" id="btnSave" onclick="addRecord()">
+        <button class="btn-primary" id="btnSave" onclick="onSubmitQuickMeter()">
           <i class="ti ti-check" aria-hidden="true"></i>
           <span id="btnText">บันทึกตอนนี้</span>
         </button>
       </div>
     </section>
-
-    <!-- Insights -->
     <section class="card insights-card">
       <div class="card-head">
         <i class="ti ti-activity" aria-hidden="true"></i>
@@ -107,8 +134,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Chart -->
     <section class="card chart-card">
       <div class="card-head">
         <i class="ti ti-chart-line" aria-hidden="true"></i>
@@ -123,8 +148,6 @@
         <canvas id="myChart" role="img" aria-label="กราฟการใช้ไฟฟ้าแบบเส้น"></canvas>
       </div>
     </section>
-
-    <!-- Heatmap -->
     <section class="card heatmap-card">
       <div class="card-head">
         <i class="ti ti-grid-dots" aria-hidden="true"></i>
@@ -144,8 +167,6 @@
         <div class="heatmap-grid" id="heatmapGrid"></div>
       </div>
     </section>
-
-    <!-- History -->
     <section class="card history-card">
       <div class="card-head">
         <i class="ti ti-list" aria-hidden="true"></i>
@@ -173,12 +194,10 @@
         </div>
       </div>
     </section>
-
   </main>
 </div>
-
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
+<div class="liff-toast" id="liffToast" aria-live="polite"></div>
 <script src="/js/app.js"></script>
 </body>
 </html>

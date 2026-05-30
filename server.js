@@ -2,78 +2,270 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const ws = require('ws')
-const { createClient } = require('@supabase/supabase-js')
 const path = require('path')
+const line = require('@line/bot-sdk')
+const { createClient } = require('@supabase/supabase-js')
 
 const app = express()
 const PORT = process.env.PORT || 3000
 const staticDir = path.join(__dirname, 'public')
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.warn('Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment variables')
-}
-
-// Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_ANON_KEY || '',
-  {
-    realtime: {
-      transport: ws
-    }
-  }
+  { realtime: { transport: ws } }
 )
+
+const lineConfig = {
+  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN || '',
+  channelSecret: process.env.LINE_CHANNEL_SECRET || ''
+}
+const lineClient = lineConfig.channelAccessToken && lineConfig.channelSecret
+  ? new line.Client(lineConfig)
+  : null
+
+const LIFF_ID = process.env.LINE_LIFF_ID || ''
+const READING_TABLE = process.env.SUPABASE_READING_TABLE || 'meter_readings'
+const USER_TABLE = process.env.SUPABASE_USER_TABLE || 'meter_users'
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.warn('Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment variables')
+}
+if (!lineClient) {
+  console.warn('Missing LINE_CHANNEL_ACCESS_TOKEN or LINE_CHANNEL_SECRET in environment variables')
+}
+if (!LIFF_ID) {
+  console.warn('Missing LINE_LIFF_ID in environment variables')
+}
 
 app.use(cors())
 app.use(express.json())
 app.use(express.static(staticDir))
 
-// ดึงข้อมูลทั้งหมด เรียงตามวันที่
-app.get('/api/records', async (req, res) => {
-  const { data, error } = await supabase
-    .from('meter_readings')
-    .select('*')
-    .order('recorded_at', { ascending: true })
+function getUserId(req) {
+  return req.header('x-line-user-id') || req.query.userId || req.body?.userId || null
+}
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
-})
+function normalizeCommand(text) {
+  return String(text || '').trim().toLowerCase()
+}
 
-// บันทึกเลขมิเตอร์ใหม่
-app.post('/api/records', async (req, res) => {
-  const { meter_value, note } = req.body
+function buildUsage(records) {
+  return records.map((r, i) => {
+    const units = i === 0 ? 0 : Math.max(0, r.meter_value - records[i - 1].meter_value)
+    return { ...r, units }
+  })
+}
 
-  if (meter_value === undefined || isNaN(meter_value)) {
-    return res.status(400).json({ error: 'meter_value ต้องเป็นตัวเลข' })
+function formatSummary(records) {
+  if (!records.length) return 'ยังไม่มีข้อมูล'
+  const usage = buildUsage(records)
+  const latest = usage[usage.length - 1]
+  const total = usage.reduce((s, r) => s + r.units, 0)
+  const lastUnits = usage.length > 1 ? usage[usage.length - 1].units : 0
+  return [
+    `ล่าสุด ${latest.meter_value}`,
+    `ใช้ไป ${total.toFixed(2)} หน่วย`,
+    `ครั้งล่าสุด +${lastUnits.toFixed(2)} หน่วย`,
+    `บันทึก ${records.length} รายการ`
+  ].join(' · ')
+}
+
+async function getRecordsByUser(userId) {
+  let query = supabase.from(READING_TABLE).select('*').order('recorded_at', { ascending: true })
+  if (userId) query = query.eq('user_id', userId)
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+async function createRecord({ meter_value, note, user_id, source = 'web' }) {
+  const payload = {
+    meter_value: parseFloat(meter_value),
+    note: note || null,
+    recorded_at: new Date().toISOString(),
+    user_id: user_id || null,
+    source
   }
+  const { data, error } = await supabase.from(READING_TABLE).insert([payload]).select().single()
+  if (error) throw error
+  return data
+}
 
-  const { data, error } = await supabase
-    .from('meter_readings')
-    .insert([{
-      meter_value: parseFloat(meter_value),
-      note: note || null,
-      recorded_at: new Date().toISOString()
-    }])
-    .select()
-    .single()
+async function deleteRecordById(id, userId) {
+  let query = supabase.from(READING_TABLE).delete().eq('id', id)
+  if (userId) query = query.eq('user_id', userId)
+  const { error } = await query
+  if (error) throw error
+  return true
+}
 
-  if (error) return res.status(500).json({ error: error.message })
-  res.json(data)
+async function deleteLastRecord(userId) {
+  let query = supabase.from(READING_TABLE).select('*').order('recorded_at', { ascending: false }).limit(1)
+  if (userId) query = query.eq('user_id', userId)
+  const { data, error } = await query
+  if (error) throw error
+  if (!data || !data.length) return null
+  const last = data[0]
+  await deleteRecordById(last.id, userId)
+  return last
+}
+
+async function upsertUserProfile(profile) {
+  if (!profile?.userId) return null
+  const payload = {
+    user_id: profile.userId,
+    display_name: profile.displayName || null,
+    picture_url: profile.pictureUrl || null,
+    status_message: profile.statusMessage || null,
+    updated_at: new Date().toISOString()
+  }
+  const { data, error } = await supabase.from(USER_TABLE).upsert(payload, { onConflict: 'user_id' }).select().single()
+  if (error) throw error
+  return data
+}
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    liffId: LIFF_ID,
+    lineReady: Boolean(lineClient),
+    envReady: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+  })
 })
 
-// ลบรายการ
+app.get('/api/liff/me', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    if (!userId) return res.status(400).json({ error: 'missing user id' })
+    const { data: profile } = await supabase.from(USER_TABLE).select('*').eq('user_id', userId).maybeSingle()
+    const records = await getRecordsByUser(userId)
+    res.json({ profile, summary: formatSummary(records), records })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.get('/api/records', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    const records = await getRecordsByUser(userId)
+    res.json(records)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.post('/api/records', async (req, res) => {
+  try {
+    const { meter_value, note, user_id, source } = req.body
+    if (meter_value === undefined || Number.isNaN(Number(meter_value))) {
+      return res.status(400).json({ error: 'meter_value ต้องเป็นตัวเลข' })
+    }
+    const data = await createRecord({ meter_value, note, user_id, source: source || 'web' })
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 app.delete('/api/records/:id', async (req, res) => {
-  const { id } = req.params
-  const { error } = await supabase
-    .from('meter_readings')
-    .delete()
-    .eq('id', id)
-
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  try {
+    const userId = getUserId(req)
+    await deleteRecordById(req.params.id, userId)
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
 })
 
-// Serve index.html สำหรับทุก route
+app.post('/api/liff/profile', async (req, res) => {
+  try {
+    const profile = req.body?.profile
+    if (!profile?.userId) return res.status(400).json({ error: 'missing profile' })
+    const data = await upsertUserProfile(profile)
+    res.json({ success: true, profile: data })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.post('/api/liff/action', async (req, res) => {
+  try {
+    const { action, meter_value, note, user_id } = req.body || {}
+    if (!user_id) return res.status(400).json({ error: 'missing user_id' })
+
+    if (action === 'cancel') {
+      const deleted = await deleteLastRecord(user_id)
+      return res.json({ ok: true, deleted })
+    }
+
+    if (action === 'latest') {
+      const records = await getRecordsByUser(user_id)
+      return res.json({ ok: true, summary: formatSummary(records), latest: records.at(-1) || null })
+    }
+
+    if (action === 'save') {
+      if (meter_value === undefined || Number.isNaN(Number(meter_value))) {
+        return res.status(400).json({ error: 'meter_value ต้องเป็นตัวเลข' })
+      }
+      const record = await createRecord({ meter_value, note, user_id, source: 'liff' })
+      return res.json({ ok: true, record })
+    }
+
+    return res.status(400).json({ error: 'unknown action' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.post('/api/line/webhook', line.middleware(lineConfig), async (req, res) => {
+  try {
+    if (!lineClient) return res.status(503).json({ error: 'line not configured' })
+    const events = req.body.events || []
+
+    await Promise.all(events.map(async event => {
+      if (event.type !== 'message' || event.message.type !== 'text') return
+      const userId = event.source?.userId
+      const text = String(event.message.text || '').trim()
+      const cmd = normalizeCommand(text)
+
+      if (!userId) return
+
+      if (cmd === 'cancel' || cmd === 'undo' || cmd === 'ยกเลิก') {
+        const deleted = await deleteLastRecord(userId)
+        await lineClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: deleted
+            ? `ยกเลิกรายการล่าสุดแล้ว\nเลขมิเตอร์ ${deleted.meter_value}`
+            : 'ยังไม่มีรายการให้ยกเลิก'
+        })
+        return
+      }
+
+      if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary') {
+        const records = await getRecordsByUser(userId)
+        await lineClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: formatSummary(records)
+        })
+        return
+      }
+
+      if (/^\d+(\.\d+)?$/.test(cmd)) {
+        const record = await createRecord({ meter_value: text, note: 'LINE', user_id: userId, source: 'line' })
+        await lineClient.replyMessage(event.replyToken, {
+          type: 'text',
+          text: `บันทึกแล้ว\nเลขมิเตอร์ ${record.meter_value}\nเวลา ${new Date(record.recorded_at).toLocaleString('th-TH')}`
+        })
+      }
+    }))
+
+    res.json({ ok: true })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'))
 })

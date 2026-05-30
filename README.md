@@ -1,121 +1,106 @@
 # ⚡ Electricity Tracker — บันทึกค่าไฟ
 
-เว็บบันทึกเลขมิเตอร์ไฟฟ้ารายวัน คำนวณหน่วยและค่าไฟอัตโนมัติ
+เว็บบันทึกเลขมิเตอร์ไฟฟ้ารายวัน คำนวณหน่วยและค่าไฟอัตโนมัติ พร้อมโหมด LINE LIFF / Chat command
 
 ---
 
-## 📋 สิ่งที่ต้องมี
+## สิ่งที่ต้องมี
 
-- Node.js (v16+)
-- บัญชี Supabase (ฟรี) — https://supabase.com
+- Node.js 18+
+- บัญชี Supabase
+- LINE Developers account
+- LIFF app
+- Messaging API channel
 
 ---
 
-## 🚀 วิธีติดตั้ง
-
-### Deploy บน Render
-
-โปรเจกต์นี้รองรับการ deploy แบบ Docker บน Render แล้ว
-
-1. สร้างเว็บ service ใหม่บน Render
-2. เลือก **Deploy from Git Repository**
-3. ใช้ `render.yaml` ที่มีในโปรเจกต์ หรือเลือก **Docker** เป็น environment
-4. ตั้งค่า Environment Variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `PORT` ไม่จำเป็นต้องตั้งเองบน Render
-5. Deploy ได้เลย
-
-### 1. สร้างฐานข้อมูล Supabase
-
-1. เข้า https://supabase.com → สร้างโปรเจกต์ใหม่
-2. ไปที่ **SQL Editor** → คลิก **New Query**
-3. วาง SQL จากไฟล์ `supabase_schema.sql` แล้วกด **Run**
-
-### 2. ดึง API Keys
-
-ไปที่ **Project Settings → API** แล้วคัดลอก:
-- `Project URL` (ขึ้นต้นด้วย `https://xxx.supabase.co`)
-- `anon public` key
-
-### 3. ตั้งค่า Environment
+## ติดตั้งแบบเร็ว
 
 ```bash
-# คัดลอก .env.example เป็น .env
 cp .env.example .env
-```
-
-แก้ไขไฟล์ `.env`:
-```
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-PORT=3000
-```
-
-### 4. ติดตั้ง Dependencies และรัน
-
-```bash
 npm install
 npm start
 ```
 
-เปิด browser ไปที่ **http://localhost:3000**
+---
 
-### รันด้วย Docker
+## ตั้งค่า Supabase
+
+1. เข้า Supabase → SQL Editor
+2. วางไฟล์ `supabase_schema.sql`
+3. กด Run
+4. ไปที่ Project Settings → API แล้วคัดลอก:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+
+ตารางที่ใช้:
+- `meter_users` เก็บข้อมูลผู้ใช้ LINE
+- `meter_readings` เก็บเลขมิเตอร์แต่ละคน
+
+---
+
+## ตั้งค่า LINE / LIFF แบบสั้น
+
+### 1) สร้าง LIFF
+
+- เข้า LINE Developers
+- เปิด Messaging API channel
+- ไปที่ LIFF → Add LIFF app
+- ตั้ง Endpoint URL เป็นโดเมนแอปนี้ เช่น
+  - `https://your-domain.com`
+- คัดลอก `LIFF ID` มาใส่ใน `.env`
+
+### 2) ตั้งค่า Webhook
+
+- เปิด Use webhook = Enabled
+- ใส่ Webhook URL:
+  - `https://your-domain.com/api/line/webhook`
+- เปิด Always reply if user sends text ได้ตามต้องการ
+
+### 3) ใส่ค่าใน `.env`
 
 ```bash
-docker build -t electricity-tracker .
-docker run -p 3000:3000 \
-  -e SUPABASE_URL=your_supabase_url \
-  -e SUPABASE_ANON_KEY=your_supabase_anon_key \
-  electricity-tracker
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key
+LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token
+LINE_CHANNEL_SECRET=your_line_channel_secret
+LINE_LIFF_ID=your_liff_id
 ```
 
 ---
 
-## 📖 วิธีใช้งาน
+## วิธีใช้ผ่าน LINE
 
-1. กรอกเลขมิเตอร์ที่อ่านได้ตอนนี้ → กด **บันทึก**
-2. ระบบจะบันทึกเวลา ณ ขณะนั้นอัตโนมัติ
-3. บันทึกซ้ำได้ทุกวัน/ทุกช่วงที่ต้องการ
-4. ดูกราฟรายวัน/รายเดือน และตารางประวัติด้านล่าง
+พิมพ์ในแชตได้เลย:
+- `8247` → บันทึกเลขมิเตอร์
+- `cancel` / `ยกเลิก` → ยกเลิกรายการล่าสุด
+- `latest` / `ล่าสุด` → ดูสรุปล่าสุด
 
----
-
-## 🗂 โครงสร้างโปรเจกต์
-
-```
-electricity-tracker/
-├── server.js              # Express server + API routes
-├── package.json
-├── .env                   # (สร้างเอง ไม่อัปโหลด)
-├── .env.example           # ตัวอย่างตัวแปร
-├── supabase_schema.sql    # SQL สร้างตาราง
-└── public/
-    ├── index.html         # หน้าเว็บหลัก
-    ├── css/style.css      # สไตล์ทั้งหมด
-    └── js/app.js          # Logic frontend
-```
+ในหน้า LIFF มีปุ่มกดเร็ว:
+- บันทึกเลขมิเตอร์
+- ดูผลล่าสุด
+- ยกเลิกรายการล่าสุด
+- ส่งสรุปกลับแชต
 
 ---
 
-## ⚙️ ปรับแต่ง
+## รันบนเครื่อง
 
-อัตราค่าไฟ (ค่าเริ่มต้น 8 บาท/หน่วย) แก้ได้ที่บรรทัดแรกของ `public/js/app.js`:
-```js
-const RATE = 8
+```bash
+npm start
 ```
+
+เปิดที่ `http://localhost:3000`
 
 ---
 
-## 📊 Supabase Schema
+## Schema
 
-```sql
-CREATE TABLE meter_readings (
-  id          bigserial PRIMARY KEY,
-  meter_value numeric(10, 2) NOT NULL,
-  note        text,
-  recorded_at timestamptz NOT NULL DEFAULT now(),
-  created_at  timestamptz NOT NULL DEFAULT now()
-);
-```
+ไฟล์ SQL อยู่ที่ `supabase_schema.sql`
+
+---
+
+## หมายเหตุ
+
+- ถ้าใช้จริง แนะนำตั้งค่า RLS/Policy ให้เหมาะกับงาน production
+- ตอนนี้ตัวอย่างนี้เน้นให้ใช้งานส่วนตัว/ทีมเล็กก่อน
