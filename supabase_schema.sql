@@ -47,6 +47,9 @@ CREATE INDEX IF NOT EXISTS idx_meter_readings_recorded_at ON meter_readings (rec
 ALTER TABLE meter_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meter_readings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "allow all users table" ON meter_users;
+DROP POLICY IF EXISTS "allow all readings table" ON meter_readings;
+
 CREATE POLICY "allow all users table" ON meter_users
   FOR ALL USING (true) WITH CHECK (true);
 
