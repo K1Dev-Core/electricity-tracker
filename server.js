@@ -40,6 +40,10 @@ if (!LIFF_ID) {
 }
 
 app.use(cors())
+
+// — webhook ต้อง raw body ก่อน json parser —
+app.use('/api/line/webhook', express.raw({ type: '*/*' }))
+
 app.use(express.json())
 app.use(express.static(staticDir))
 
@@ -222,36 +226,28 @@ app.post('/api/liff/action', async (req, res) => {
 
 app.post('/api/line/webhook', async (req, res) => {
   try {
-    console.log('[WEBHOOK] 🔔 Received webhook call')
-    console.log('[WEBHOOK] Headers:', JSON.stringify(req.headers))
-    
-    if (!lineClient) {
-      console.log('[WEBHOOK] ❌ lineClient is null')
-      return res.status(503).json({ error: 'line not configured' })
-    }
+    console.log('[WEBHOOK] 🔔 Received')
 
-    const rawBody = req.body
-    console.log('[WEBHOOK] rawBody type:', typeof rawBody, 'isBuffer:', Buffer.isBuffer(rawBody))
-    
-    const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '')
+    if (!lineClient) return res.status(503).json({ error: 'line not configured' })
+
+    const rawBody = req.body  // Buffer from express.raw()
+    const bodyStr = rawBody.toString('utf8')
     const signature = req.headers['x-line-signature'] || ''
     const expected = crypto
       .createHmac('SHA256', lineConfig.channelSecret)
-      .update(Buffer.isBuffer(rawBody) ? rawBody : bodyStr)
+      .update(rawBody)
       .digest('base64')
 
-    console.log('[WEBHOOK] signature from LINE:', signature)
-    console.log('[WEBHOOK] expected signature:', expected)
-    console.log('[WEBHOOK] match:', signature === expected)
-
     if (signature !== expected) {
-      console.warn('[WEBHOOK] ⚠️ LINE webhook signature mismatch')
+      console.warn('[WEBHOOK] ⚠️ signature mismatch')
       return res.json({ ok: true })
     }
 
+    console.log('[WEBHOOK] ✅ signature OK')
+
     const parsed = JSON.parse(bodyStr)
     const events = parsed.events || []
-    console.log('[WEBHOOK] events count:', events.length)
+    console.log('[WEBHOOK] events:', events.length)
 
     await Promise.all(events.map(async event => {
       console.log('[WEBHOOK] event type:', event.type, 'message type:', event.message?.type)
