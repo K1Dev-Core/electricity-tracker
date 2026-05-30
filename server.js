@@ -538,7 +538,7 @@ app.post('/api/line/webhook', async (req, res) => {
           contents: [
             {
               type: 'button',
-              style: 'secondary',
+              style: 'primary',
               color: '#1a1a18',
               action: {
                 type: 'postback',
