@@ -271,6 +271,31 @@ app.post('/api/line/webhook', async (req, res) => {
     await Promise.all(events.map(async event => {
       console.log('[WEBHOOK] event type:', event.type, 'message type:', event.message?.type)
       
+      // ── ตอบกลับ postback (ผลลัพธ์ลบ) ──
+      if (event.type === 'postback') {
+        const userId = event.source?.userId
+        if (!userId) return
+        const data = event.postback?.data || ''
+        const match = data.match(/^delete_record:(\d+)$/)
+        if (!match) return
+        const recordId = parseInt(match[1], 10)
+        console.log('[WEBHOOK] postback delete record:', recordId)
+        try {
+          const deleted = await deleteRecordById(recordId, userId)
+          await lineClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '🗑️ ลบรายการแล้ว'
+          })
+        } catch (e) {
+          console.error('[WEBHOOK] delete failed:', e)
+          await lineClient.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '❌ ลบไม่สำเร็จ'
+          })
+        }
+        return
+      }
+      
       if (event.type !== 'message' || event.message.type !== 'text') {
         console.log('[WEBHOOK] skipping non-text message')
         return
@@ -287,19 +312,7 @@ app.post('/api/line/webhook', async (req, res) => {
         return
       }
 
-      if (cmd === 'cancel' || cmd === 'undo' || cmd === 'ยกเลิก' || cmd === 'ลบ') {
-        console.log('[WEBHOOK] processing cancel')
-        const deleted = await deleteLastRecord(userId)
-        console.log('[WEBHOOK] deleted:', deleted)
-        await lineClient.replyMessage(event.replyToken, {
-          type: 'text',
-          text: deleted
-            ? `ยกเลิกรายการล่าสุดแล้ว\nเลขมิเตอร์ ${deleted.meter_value}`
-            : 'ยังไม่มีรายการให้ยกเลิก'
-        })
-        console.log('[WEBHOOK] cancel reply sent')
-        return
-      }
+      // — ลบโดยตรงถูกย้ายไปที่ปุ่มใน Flex Message แทน —
 
       if (cmd === 'latest' || cmd === 'ล่าสุด' || cmd === 'summary' || cmd === 'สรุป') {
         console.log('[WEBHOOK] processing latest')
@@ -358,22 +371,97 @@ app.post('/api/line/webhook', async (req, res) => {
       if (/^\d+(\.\d+)?$/.test(cmd)) {
         console.log('[WEBHOOK] processing number save:', text)
         const record = await createRecord({ meter_value: text, note: 'LINE', user_id: userId, source: 'line' })
-        // คำนวณหน่วยที่ใช้
         const prev = await getPrevRecord(userId)
         const units = prev && record.meter_value >= prev.meter_value
           ? record.meter_value - prev.meter_value
           : null
         const cost = units ? +(units * 8).toFixed(2) : 0
-        await lineClient.replyMessage(event.replyToken, {
+        
+        const bodyContents = []
+        bodyContents.push({
           type: 'text',
-          text: units !== null
-            ? `✅ บันทึกแล้ว\n\n${prev.meter_value} → ${record.meter_value}\nหน่วยที่ใช้ +${units.toFixed(2)} หน่วย = ${cost.toFixed(0)} บาท`
-            : `✅ บันทึกแล้ว\nเลขมิเตอร์ ${record.meter_value}\n(รอบแรก ยังไม่คิดหน่วย)`
+          text: '✅ บันทึกเรียบร้อย',
+          weight: 'bold',
+          size: 'lg',
+          color: '#1a1a18'
+        })
+        bodyContents.push({ type: 'separator', color: '#e8e8e0' })
+        
+        if (units !== null) {
+          bodyContents.push({
+            type: 'text',
+            text: `มิเตอร์ ${prev.meter_value} → ${record.meter_value}`,
+            size: 'sm',
+            color: '#555555',
+            wrap: true
+          })
+          bodyContents.push({
+            type: 'text',
+            text: `หน่วยที่ใช้ +${units.toFixed(2)} หน่วย = ${cost.toFixed(0)} บาท`,
+            size: 'sm',
+            color: '#555555',
+            wrap: true
+          })
+        } else {
+          bodyContents.push({
+            type: 'text',
+            text: `มิเตอร์ ${record.meter_value} (รอบแรก)`,
+            size: 'sm',
+            color: '#555555',
+            wrap: true
+          })
+        }
+        
+        bodyContents.push({ type: 'separator', color: '#e8e8e0' })
+        
+        // Buttons row
+        const btnBox = {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'button',
+              style: 'secondary',
+              color: '#c0392b',
+              action: {
+                type: 'postback',
+                label: '🗑️ ลบรายการนี้',
+                data: `delete_record:${record.id}`
+              }
+            },
+            {
+              type: 'button',
+              style: 'primary',
+              color: '#1a1a18',
+              action: {
+                type: 'uri',
+                label: '📊 เปิดแอป',
+                uri: 'https://liff.line.me/2010240368-w9rYgLNk'
+              }
+            }
+          ]
+        }
+        bodyContents.push(btnBox)
+
+        await lineClient.replyMessage(event.replyToken, {
+          type: 'flex',
+          altText: '✅ บันทึกแล้ว',
+          contents: {
+            type: 'bubble',
+            size: 'giga',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              spacing: 'md',
+              contents: bodyContents
+            }
+          }
         })
         console.log('[WEBHOOK] save reply sent')
         return
       }
-      
+
       console.log('[WEBHOOK] unhandled command:', cmd)
     }))
 
