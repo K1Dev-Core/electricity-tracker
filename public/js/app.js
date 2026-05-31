@@ -478,12 +478,21 @@ async function loadPreferences() {
 }
 
 window.openSettings = async function() {
-  document.getElementById('inputRate').value = userRate
-  document.getElementById('reminderEnabled').checked = reminderEnabled
-  document.getElementById('reminderStartHour').value = reminderStartHour
-  document.getElementById('reminderEndHour').value = reminderEndHour
+  const rateEl = document.getElementById('inputRate')
+  const enabledEl = document.getElementById('reminderEnabled')
+  const startEl = document.getElementById('reminderStartHour')
+  const endEl = document.getElementById('reminderEndHour')
+  const modalEl = document.getElementById('settingsModal')
+  if (!rateEl || !enabledEl || !startEl || !endEl || !modalEl) {
+    showToast('หาแผงตั้งค่าไม่เจอ')
+    return
+  }
+  rateEl.value = userRate
+  enabledEl.checked = reminderEnabled
+  startEl.value = reminderStartHour
+  endEl.value = reminderEndHour
   syncReminderChips()
-  document.getElementById('settingsModal').classList.remove('hidden')
+  modalEl.classList.remove('hidden')
 }
 
 window.closeSettings = function() {
