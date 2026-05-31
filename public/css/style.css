@@ -158,6 +158,10 @@ td .btn-billing + .btn-del { margin-left: 2px; }
   .btn-gear-desktop { display:none; }
   .btn-gear-mobile { display:inline-flex; }
 }
+@media (min-width: 921px) {
+  .btn-gear-desktop { display:inline-flex; }
+  .btn-gear-mobile { display:none; }
+}
 @media (max-width: 580px) {
   .form-body { grid-template-columns: 1fr; }
   .btn-primary { width:100%; justify-content:center; }
@@ -226,7 +230,8 @@ td .btn-billing + .btn-del { margin-left: 2px; }
 .sidebar-actions { display:flex; align-items:center; gap:8px; margin-top: 0.75rem; }
 .btn-gear-desktop, .btn-gear-mobile { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
 .btn-gear-desktop:hover, .btn-gear-mobile:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-.btn-gear-mobile { display:none; }
+.btn-gear-mobile { display:inline-flex; }
+.btn-gear-desktop { display:none; }
 .sidebar-version { font-size: 10px; color: rgba(255,255,255,0.25); }
 
 /* ─── Settings & Confirm Modal ─────────────────────── */
