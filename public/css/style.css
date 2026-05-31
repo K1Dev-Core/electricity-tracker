@@ -235,8 +235,9 @@ td .btn-billing + .btn-del { margin-left: 2px; }
 .sidebar-version { font-size: 10px; color: rgba(255,255,255,0.25); }
 
 /* ─── Settings & Confirm Modal ─────────────────────── */
-.modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+.modal-overlay { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .modal-overlay.hidden { display: none !important; }
+.line-overlay { z-index: 1000; }
 .modal-card { background: #fff; border-radius: 14px; width: 90%; max-width: 360px; box-shadow: 0 8px 40px rgba(0,0,0,0.2); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--line); }
 .modal-head h2 { font-size: 15px; display: flex; align-items: center; gap: 6px; }
