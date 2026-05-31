@@ -477,13 +477,14 @@ async function loadPreferences() {
 }
 
 window.openSettings = async function() {
+  const modalEl = document.getElementById('settingsModal')
   const rateEl = document.getElementById('inputRate')
   const enabledEl = document.getElementById('reminderEnabled')
   const startEl = document.getElementById('reminderStartHour')
   const endEl = document.getElementById('reminderEndHour')
-  const modalEl = document.getElementById('settingsModal')
-  if (!rateEl || !enabledEl || !startEl || !endEl || !modalEl) {
-    showToast('หาแผงตั้งค่าไม่เจอ')
+  if (!modalEl || !rateEl || !enabledEl || !startEl || !endEl) {
+    console.warn('Settings modal missing elements', { modalEl, rateEl, enabledEl, startEl, endEl })
+    showToast('ยังไม่พร้อมเปิดแผงตั้งค่า')
     return
   }
   rateEl.value = userRate
