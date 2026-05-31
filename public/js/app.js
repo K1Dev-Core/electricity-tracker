@@ -418,7 +418,6 @@ function hideLoading() {
 function animateCounter(elId, target, suffix = '') {
   const el = document.getElementById(elId)
   if (!el) return
-  const start = 0
   const duration = 800
   const step = 16
   const totalSteps = duration / step
