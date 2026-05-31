@@ -293,6 +293,21 @@ app.patch('/api/records/:id/billing', async (req, res) => {
   }
 })
 
+app.post('/api/reminders/test', async (req, res) => {
+  try {
+    const userId = getUserId(req)
+    if (!userId) return res.status(400).json({ error: 'missing user id' })
+    if (!lineClient) return res.status(500).json({ error: 'line client not ready' })
+    await lineClient.pushMessage(userId, {
+      type: 'text',
+      text: '🔔 ทดสอบแจ้งเตือนสำเร็จ\nระบบแจ้งเตือนพร้อมใช้งานแล้ว'
+    })
+    res.json({ success: true })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 app.post('/api/liff/profile', async (req, res) => {
   try {
     const profile = req.body?.profile
